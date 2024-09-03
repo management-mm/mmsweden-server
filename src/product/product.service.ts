@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Query } from 'express-serve-static-core';
 import { Model } from 'mongoose';
+import type { SortOrder } from 'mongoose';
 import { CategoryService } from 'src/category/category.service';
 import { LanguageKeys } from 'src/common/types/language.types';
 import { IndustryService } from 'src/industry/industry.service';
@@ -19,9 +20,11 @@ export class ProductService {
   ) {}
 
   async findAll(query: Query): Promise<Product[]> {
-    const perPage = Number(query.perPage) || 9;
+    
+    const perPage = Number(query.perPage) || 15;
     const currentPage = Number(query.page) || 1;
     const skip = perPage * (currentPage - 1);
+    const sort: Record<string, SortOrder> = String(query.sort) === 'latest' ? { createdAt: -1 } : {};
 
     const keywordCondition = query.keyword
       ? {
@@ -100,6 +103,7 @@ export class ProductService {
     const products = await this.productModel
       .find({ ...conditions })
       .limit(perPage)
+      .sort(sort)
       .skip(skip);
     return products;
   }
