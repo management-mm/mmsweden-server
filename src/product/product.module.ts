@@ -9,6 +9,7 @@ import { Product } from 'src/schemas/product.schema';
 
 import { ProductController } from './product.controller';
 import { ProductService } from './product.service';
+import { TranslationModule } from 'src/translation/translation.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { ProductService } from './product.service';
     CategoryModule,
     IndustryModule,
     ManufacturerModule,
+    TranslationModule,
     MongooseModule.forFeature([{ name: Product.name, schema: ProductSchema }]),
   ],
   controllers: [ProductController],

@@ -25,7 +25,7 @@ export class ProductController {
   async getAllProducts(
     @Query()
     query: ExpressQuery
-  ): Promise<Product[]> {
+  ): Promise<{products: Product[], total: number}> {
     return this.productService.findAll(query);
   }
 
@@ -36,6 +36,14 @@ export class ProductController {
   ): Promise<Product> {
     return this.productService.findById(id);
   }
+
+  @Get(':id/recommended-products')
+  async getRecommendedProducts(
+    @Param('id')
+    id: string
+  ): Promise<Product[]> {
+    return this.productService.findRecommendedProductsById(id)
+    }
 
   @Post()
   @UseGuards(AuthGuard())

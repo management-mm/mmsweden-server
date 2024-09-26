@@ -9,6 +9,10 @@ import { CategoryModule } from './category/category.module';
 import { IndustryModule } from './industry/industry.module';
 import { ManufacturerModule } from './manufacturer/manufacturer.module';
 import { ProductModule } from './product/product.module';
+import { MailerModule } from './mailer/mailer.module';
+import { CloudinaryModule } from './cloudinary/cloudinary.module';
+import { DeepLModule } from './deep-l/deep-l.module';
+import { TranslationModule } from './translation/translation.module';
 
 @Module({
   imports: [
@@ -21,7 +25,11 @@ import { ProductModule } from './product/product.module';
     AuthModule,
     CategoryModule,
     ManufacturerModule,
+    TranslationModule,
     IndustryModule,
+    MailerModule,
+    CloudinaryModule,
+    DeepLModule,
   ],
   controllers: [AppController],
   providers: [AppService],

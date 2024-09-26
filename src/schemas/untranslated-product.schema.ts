@@ -1,18 +1,17 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { MultiLanguageString } from 'src/common/types/language.types';
 
 @Schema({
   timestamps: true,
 })
-export class Product {
+export class UntranslatedProduct {
   @Prop({ type: Object })
-  name: MultiLanguageString;
+  name: string;
 
   @Prop({ type: String })
   idNumber: string;
 
   @Prop({ type: Object })
-  description: MultiLanguageString;
+  description: string;
 
   @Prop({ type: String })
   dimensions: string;
@@ -24,16 +23,16 @@ export class Product {
   video: string;
 
   @Prop({ type: Object })
-  category: MultiLanguageString;
+  category: string;
 
   @Prop({ type: String })
   manufacturer: string;
 
   @Prop({ type: [Object] })
-  industries: MultiLanguageString[];
+  industries: string[];
 
   @Prop({ type: String })
   condition: 'used' | 'new';
 }
 
-export const ProductSchema = SchemaFactory.createForClass(Product);
+export const ProductSchema = SchemaFactory.createForClass(UntranslatedProduct);
