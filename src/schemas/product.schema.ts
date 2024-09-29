@@ -9,7 +9,7 @@ export class Product {
   name: MultiLanguageString;
 
   @Prop({ type: Number })
-  idNumber: number;
+  idNumber: string;
 
   @Prop({ type: Object })
   description: MultiLanguageString;
@@ -30,7 +30,7 @@ export class Product {
   manufacturer: string;
 
   @Prop({ type: [Object] })
-  industry: MultiLanguageString[];
+  industries: MultiLanguageString[];
 
   @Prop({ type: String })
   condition: 'used' | 'new';
