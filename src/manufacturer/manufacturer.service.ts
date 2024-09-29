@@ -18,8 +18,8 @@ export class ManufacturerService {
     let manufacturer = await this.manufacturerModel.findOne({ name }).exec();
 
     if (!manufacturer) {
-      manufacturer = new this.manufacturerModel({ name });
-      return manufacturer.save();
+      manufacturer = new this.manufacturerModel({ name }, { versionKey: false });
+      manufacturer.save();
     }
 
     return manufacturer;
