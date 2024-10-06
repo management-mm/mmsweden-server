@@ -4,6 +4,7 @@ import { Query } from 'express-serve-static-core';
 import { Model } from 'mongoose';
 import type { SortOrder } from 'mongoose';
 import { CategoryService } from 'src/category/category.service';
+import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
 import { LanguageKeys } from 'src/common/types/language.types';
 import { IndustryService } from 'src/industry/industry.service';
 import { ManufacturerService } from 'src/manufacturer/manufacturer.service';
@@ -20,45 +21,45 @@ export class ProductService {
     private readonly manufacturerService: ManufacturerService,
     private readonly industryService: IndustryService,
     private readonly translationService: TranslationService,
+    private readonly cloudinaryService: CloudinaryService
   ) {}
 
-  async findAll(query: Query): Promise<{ products: Product[], total: number }> {
+  async findAll(query: Query): Promise<{ products: Product[]; total: number }> {
     const lang: LanguageKeys = query.lang as LanguageKeys;
     const perPage = Number(query.perPage) || 15;
     const currentPage = Number(query.page) || 1;
     const skip = perPage * (currentPage - 1);
-    const sort: Record<string, SortOrder> = String(query.sort) === 'latest' ? { createdAt: -1 } : {};
-    const categories = ensureArray(query.category) 
-    const manufacturers = ensureArray(query.manufacturer)
+    const sort: Record<string, SortOrder> =
+      String(query.sort) === 'latest' ? { createdAt: -1 } : {};
+    const categories = ensureArray(query.category);
+    const manufacturers = ensureArray(query.manufacturer);
     const industries = ensureArray(query.industry);
 
     function ensureArray(input) {
-      return Array.isArray(input)
-      ? input
-      : [input];
+      return Array.isArray(input) ? input : [input];
     }
 
     const keywordCondition = query.keyword
       ? {
-        $or: [
-          {
-            [`name.${LanguageKeys.EN}`]: {
-            $regex: query.keyword,
-            $options: 'i',
-          }
-          },
-          {
-            idNumber: {
-              $regex: `^${query.keyword}`
-            }
-          }
-        ]
-      }
+          $or: [
+            {
+              [`name.${LanguageKeys.EN}`]: {
+                $regex: query.keyword,
+                $options: 'i',
+              },
+            },
+            {
+              idNumber: {
+                $regex: `^${query.keyword}`,
+              },
+            },
+          ],
+        }
       : {};
 
     const categoryCondition = query.category
       ? {
-        $or: categories.map(categoryItem => ({
+          $or: categories.map(categoryItem => ({
             [`category.${lang}`]: { $regex: categoryItem, $options: 'i' },
           })),
         }
@@ -66,9 +67,13 @@ export class ProductService {
 
     const manufacturerCondition = query.manufacturer
       ? {
-        $or: manufacturers.map(manufacturerItem => ({
-            'manufacturer': { $regex: manufacturerItem.replace(/\s+/g, '').replace(/[+]/g, '\\+') }
-          }))
+          $or: manufacturers.map(manufacturerItem => ({
+            manufacturer: {
+              $regex: manufacturerItem
+                .replace(/\s+/g, '')
+                .replace(/[+]/g, '\\+'),
+            },
+          })),
         }
       : {};
 
@@ -83,19 +88,19 @@ export class ProductService {
 
     const industryCondition = query.industry
       ? {
-        $or: industries.map(industryItem => ({
-        'industries': {
-          $elemMatch: {
-            [`${lang}`]: {
-              $regex: industryItem,
-              $options: 'i'
-            }
-          }
-        }
-      }))
+          $or: industries.map(industryItem => ({
+            industries: {
+              $elemMatch: {
+                [`${lang}`]: {
+                  $regex: industryItem,
+                  $options: 'i',
+                },
+              },
+            },
+          })),
         }
       : {};
-    
+
     const conditionsArray = [
       keywordCondition,
       categoryCondition,
@@ -104,7 +109,9 @@ export class ProductService {
       conditionCondition,
     ];
 
-    const nonEmptyConditions = conditionsArray.filter(cond => Object.keys(cond).length > 0);
+    const nonEmptyConditions = conditionsArray.filter(
+      cond => Object.keys(cond).length > 0
+    );
 
     const conditions = nonEmptyConditions.length
       ? { $and: nonEmptyConditions }
@@ -115,12 +122,14 @@ export class ProductService {
       .limit(perPage)
       .sort(sort)
       .skip(skip);
-      
-    const totalProducts = await this.productModel.countDocuments({ ...conditions });
-    
+
+    const totalProducts = await this.productModel.countDocuments({
+      ...conditions,
+    });
+
     return {
-  products,
-  total: totalProducts
+      products,
+      total: totalProducts,
     };
   }
 
@@ -129,40 +138,50 @@ export class ProductService {
     const { category, industries, manufacturer } = product;
 
     const categoryCondition = {
-      [`category.${LanguageKeys.EN}`]: { $regex: category.en, $options: 'i' }
+      [`category.${LanguageKeys.EN}`]: { $regex: category.en, $options: 'i' },
     };
 
     const manufacturerCondition = {
-      'manufacturer': { $regex: manufacturer.replace(/\s+/g, '').replace(/[+]/g, '\\+'), $options: 'i' }
+      manufacturer: {
+        $regex: manufacturer.replace(/\s+/g, '').replace(/[+]/g, '\\+'),
+        $options: 'i',
+      },
     };
 
     const industriesCondition = {
       $or: industries.map(industryItem => ({
-        'industries': {
+        industries: {
           $elemMatch: {
             [`${LanguageKeys.EN}`]: {
               $regex: industryItem.en,
-              $options: 'i'
-            }
-          }
-        }
-      }))
+              $options: 'i',
+            },
+          },
+        },
+      })),
     };
 
-    const idCondition = {'_id': {$ne: id}}
+    const idCondition = { _id: { $ne: id } };
 
     const searchConditions = [
-      [categoryCondition, manufacturerCondition, industriesCondition, idCondition],
+      [
+        categoryCondition,
+        manufacturerCondition,
+        industriesCondition,
+        idCondition,
+      ],
       [categoryCondition, industriesCondition, idCondition],
       [manufacturerCondition, industriesCondition, idCondition],
-      [manufacturerCondition, categoryCondition, idCondition],       
-      [categoryCondition, idCondition],                        
-      [industriesCondition, idCondition],                         
-      [manufacturerCondition, idCondition]                     
+      [manufacturerCondition, categoryCondition, idCondition],
+      [categoryCondition, idCondition],
+      [industriesCondition, idCondition],
+      [manufacturerCondition, idCondition],
     ];
-  
+
     const results = await Promise.all(
-      searchConditions.map(condition => this.productModel.find({ $and: condition }))
+      searchConditions.map(condition =>
+        this.productModel.find({ $and: condition })
+      )
     );
 
     const allRecommendedProducts = results.flat();
@@ -179,14 +198,26 @@ export class ProductService {
   async create(product: UntranslatedProduct, query: Query): Promise<Product> {
     const sourceLanguage: 'en' | 'sv' = query.lang as 'en' | 'sv';
 
-    const nameTranslations = await this.translationService.translateText(product.name, sourceLanguage);
-    const descriptionTranslations = await this.translationService.translateText(product.description, sourceLanguage);
-    
-    const category = await this.categoryService.findOrCreate(product.category, sourceLanguage);
+    const nameTranslations = await this.translationService.translateText(
+      product.name,
+      sourceLanguage
+    );
+    const descriptionTranslations = await this.translationService.translateText(
+      product.description,
+      sourceLanguage
+    );
+
+    const category = await this.categoryService.findOrCreate(
+      product.category,
+      sourceLanguage
+    );
     const manufacturer = await this.manufacturerService.findOrCreate(
       product.manufacturer
     );
-    const industries = await this.industryService.findOrCreate(product.industries, sourceLanguage)
+    const industries = await this.industryService.findOrCreate(
+      product.industries,
+      sourceLanguage
+    );
 
     const createdProduct = new this.productModel({
       ...product,
@@ -194,9 +225,12 @@ export class ProductService {
       description: descriptionTranslations,
       category: category.name,
       manufacturer: manufacturer.name,
-      industries: industries.map(industry => {
-      return industry.name
-    }, { versionKey: false })
+      industries: industries.map(
+        industry => {
+          return industry.name;
+        },
+        { versionKey: false }
+      ),
     });
 
     return createdProduct.save();
@@ -210,6 +244,37 @@ export class ProductService {
     }
 
     return product;
+  }
+
+  async updatePhotos(
+    id: string,
+    files: Express.Multer.File[]
+  ): Promise<Product> {
+    const photos: string[] = [];
+    const product = await this.productModel.findById(id);
+    const { category, idNumber } = product;
+
+    const categoryFolder = category.en.replace(/ /g, '-').toLowerCase();
+
+    const folderPath = `products/${categoryFolder}/${idNumber}`;
+
+    for (const file of files) {
+      const uploadedPhoto = await this.cloudinaryService.uploadImage(
+        file,
+        folderPath
+      );
+
+      photos.push(uploadedPhoto.secure_url);
+    }
+
+    return await this.productModel.findByIdAndUpdate(
+      id,
+      { $set: { photos: photos.reverse() } },
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
   }
 
   async updateById(id: string, product: Product): Promise<Product> {

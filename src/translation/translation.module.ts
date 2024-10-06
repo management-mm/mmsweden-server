@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common';
-import { TranslationService } from './translation.service';
 import { DeepLModule } from 'src/deep-l/deep-l.module';
+
+import { TranslationService } from './translation.service';
 
 @Module({
   imports: [DeepLModule],
   providers: [TranslationService],
-  exports: [TranslationService]
+  exports: [TranslationService],
 })
 export class TranslationModule {}

@@ -7,16 +7,19 @@ export class DeepLService {
   private readonly translator: deepl.Translator;
 
   constructor() {
-
     this.translator = new deepl.Translator(this.apiKey);
   }
 
-
-  async translate(text: string, targetLang: deepl.TargetLanguageCode): Promise<string> {
+  async translate(
+    text: string,
+    targetLang: deepl.TargetLanguageCode
+  ): Promise<string> {
     try {
-
-      const result = await this.translator.translateText(text, null, targetLang);
-
+      const result = await this.translator.translateText(
+        text,
+        null,
+        targetLang
+      );
 
       return result.text;
     } catch (error) {
