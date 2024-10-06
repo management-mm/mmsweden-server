@@ -7,9 +7,12 @@ import {
   Post,
   Put,
   Query,
+  UploadedFiles,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { Query as ExpressQuery } from 'express-serve-static-core';
 import { Product } from 'src/schemas/product.schema';
 
@@ -25,7 +28,7 @@ export class ProductController {
   async getAllProducts(
     @Query()
     query: ExpressQuery
-  ): Promise<{products: Product[], total: number}> {
+  ): Promise<{ products: Product[]; total: number }> {
     return this.productService.findAll(query);
   }
 
@@ -42,8 +45,20 @@ export class ProductController {
     @Param('id')
     id: string
   ): Promise<Product[]> {
-    return this.productService.findRecommendedProductsById(id)
-    }
+    return this.productService.findRecommendedProductsById(id);
+  }
+
+  @Put(':id/photos')
+  @UseInterceptors(FilesInterceptor('photos'))
+  @UseGuards(AuthGuard())
+  async updatePhotos(
+    @Param('id')
+    id: string,
+    @UploadedFiles()
+    files: Express.Multer.File[]
+  ): Promise<Product> {
+    return this.productService.updatePhotos(id, files);
+  }
 
   @Post()
   @UseGuards(AuthGuard())

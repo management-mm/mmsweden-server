@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Industry, IndustrySchema } from 'src/schemas/industry.schema';
+import { TranslationModule } from 'src/translation/translation.module';
 
 import { IndustryController } from './industry.controller';
 import { IndustryService } from './industry.service';
-import { TranslationModule } from 'src/translation/translation.module';
 
 @Module({
   imports: [
