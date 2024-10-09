@@ -78,8 +78,10 @@ export class ProductController {
     id: string,
     @Body()
     product: UpdateProductDto
+    @UploadedFiles()
+    files: Express.Multer.File[]
   ): Promise<Product> {
-    return this.productService.updateById(id, product);
+    return this.productService.updateById(id, product, files);
   }
 
   @Delete(':id')
