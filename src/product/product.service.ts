@@ -5,7 +5,10 @@ import { Model } from 'mongoose';
 import type { SortOrder } from 'mongoose';
 import { CategoryService } from 'src/category/category.service';
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
-import { LanguageKeys } from 'src/common/types/language.types';
+import {
+  LanguageKeys,
+  MultiLanguageString,
+} from 'src/common/types/language.types';
 import { IndustryService } from 'src/industry/industry.service';
 import { ManufacturerService } from 'src/manufacturer/manufacturer.service';
 import { Product } from 'src/schemas/product.schema';
@@ -25,7 +28,6 @@ export class ProductService {
   ) {}
 
   async findAll(query: Query): Promise<{ products: Product[]; total: number }> {
-    const lang: LanguageKeys = query.lang as LanguageKeys;
     const perPage = Number(query.perPage) || 15;
     const currentPage = Number(query.page) || 1;
     const skip = perPage * (currentPage - 1);
@@ -39,11 +41,19 @@ export class ProductService {
       return Array.isArray(input) ? input : [input];
     }
 
+    const languages = Object.values(LanguageKeys);
+
     const keywordCondition = query.keyword
       ? {
           $or: [
+            ...languages.map(lang => ({
+              [`name.${lang}`]: {
+                $regex: query.keyword,
+                $options: 'i',
+              },
+            })),
             {
-              [`name.${LanguageKeys.EN}`]: {
+              name: {
                 $regex: query.keyword,
                 $options: 'i',
               },
@@ -60,7 +70,10 @@ export class ProductService {
     const categoryCondition = query.category
       ? {
           $or: categories.map(categoryItem => ({
-            [`category.${lang}`]: { $regex: categoryItem, $options: 'i' },
+            [`category.${LanguageKeys.EN}`]: {
+              $regex: categoryItem,
+              $options: 'i',
+            },
           })),
         }
       : {};
@@ -91,7 +104,7 @@ export class ProductService {
           $or: industries.map(industryItem => ({
             industries: {
               $elemMatch: {
-                [`${lang}`]: {
+                [`${LanguageKeys.EN}`]: {
                   $regex: industryItem,
                   $options: 'i',
                 },
@@ -135,31 +148,41 @@ export class ProductService {
 
   async findRecommendedProductsById(id: string): Promise<Product[]> {
     const product = await this.productModel.findById(id);
+
     const { category, industries, manufacturer } = product;
-
-    const categoryCondition = {
-      [`category.${LanguageKeys.EN}`]: { $regex: category.en, $options: 'i' },
-    };
-
-    const manufacturerCondition = {
-      manufacturer: {
-        $regex: manufacturer.replace(/\s+/g, '').replace(/[+]/g, '\\+'),
-        $options: 'i',
-      },
-    };
-
-    const industriesCondition = {
-      $or: industries.map(industryItem => ({
-        industries: {
-          $elemMatch: {
-            [`${LanguageKeys.EN}`]: {
-              $regex: industryItem.en,
-              $options: 'i',
-            },
+    const categoryCondition = category
+      ? {
+          [`category.${LanguageKeys.EN}`]: {
+            $regex: category.en,
+            $options: 'i',
           },
-        },
-      })),
-    };
+        }
+      : {};
+
+    const manufacturerCondition = manufacturer
+      ? {
+          manufacturer: {
+            $regex: manufacturer.replace(/\s+/g, '').replace(/[+]/g, '\\+'),
+            $options: 'i',
+          },
+        }
+      : {};
+
+    const industriesCondition =
+      industries.length !== 0
+        ? {
+            $or: industries.map(industryItem => ({
+              industries: {
+                $elemMatch: {
+                  [`${LanguageKeys.EN}`]: {
+                    $regex: industryItem.en,
+                    $options: 'i',
+                  },
+                },
+              },
+            })),
+          }
+        : {};
 
     const idCondition = { _id: { $ne: id } };
 
@@ -196,12 +219,18 @@ export class ProductService {
   }
 
   async create(product: UntranslatedProduct, query: Query): Promise<Product> {
-    const sourceLanguage: 'en' | 'sv' = query.lang as 'en' | 'sv';
+    const sourceLanguage: 'en' | 'sv' = (query.lang as 'en' | 'sv') || 'en';
+    let nameTranslations: MultiLanguageString | undefined;
+    const shouldTranslateName: boolean =
+      Boolean(query.shouldTranslateName) || false;
 
-    const nameTranslations = await this.translationService.translateText(
-      product.name,
-      sourceLanguage
-    );
+    if (shouldTranslateName) {
+      nameTranslations = await this.translationService.translateText(
+        product.name,
+        sourceLanguage
+      );
+    }
+
     const descriptionTranslations = await this.translationService.translateText(
       product.description,
       sourceLanguage
@@ -221,7 +250,7 @@ export class ProductService {
 
     const createdProduct = new this.productModel({
       ...product,
-      name: nameTranslations,
+      name: nameTranslations || product.name,
       description: descriptionTranslations,
       category: category.name,
       manufacturer: manufacturer.name,
@@ -234,16 +263,6 @@ export class ProductService {
     });
 
     return createdProduct.save();
-  }
-
-  async findById(id: string): Promise<Product> {
-    const product = await this.productModel.findById(id);
-
-    if (!product) {
-      throw new NotFoundException('Product not found');
-    }
-
-    return product;
   }
 
   async updatePhotos(
@@ -277,11 +296,45 @@ export class ProductService {
     );
   }
 
-  async updateById(id: string, product: Product): Promise<Product> {
-    return await this.productModel.findByIdAndUpdate(id, product, {
-      new: true,
-      runValidators: true,
-    });
+  async findById(id: string): Promise<Product> {
+    const product = await this.productModel.findById(id);
+
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+
+    return product;
+  }
+
+  async updateById(
+    id: string,
+    product: Product,
+    files: Express.Multer.File[]
+  ): Promise<Product> {
+    const photos: string[] = [];
+    const { category, idNumber } = product;
+
+    if (files && files.length > 0) {
+      const categoryFolder = category.en.replace(/ /g, '-').toLowerCase();
+      const folderPath = `products/${categoryFolder}/${idNumber}`;
+
+      for (const file of files) {
+        const uploadedPhoto = await this.cloudinaryService.uploadImage(
+          file,
+          folderPath
+        );
+        photos.push(uploadedPhoto.secure_url);
+      }
+    }
+
+    return await this.productModel.findByIdAndUpdate(
+      id,
+      { $set: { ...product, photos } },
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
   }
 
   async deleteById(id: string): Promise<Product> {
