@@ -7,6 +7,7 @@ import { CategoryModule } from './category/category.module';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { DeepLModule } from './deep-l/deep-l.module';
 import { IndustryModule } from './industry/industry.module';
+import { MailerModule } from './mailer/mailer.module';
 import { ManufacturerModule } from './manufacturer/manufacturer.module';
 import { ProductModule } from './product/product.module';
 import { TranslationModule } from './translation/translation.module';
@@ -24,8 +25,11 @@ import { TranslationModule } from './translation/translation.module';
     ManufacturerModule,
     TranslationModule,
     IndustryModule,
-    DeepLModule,
+    MailerModule,
     CloudinaryModule,
+    DeepLModule,
   ],
+  controllers: [],
+  providers: [],
 })
 export class AppModule {}
