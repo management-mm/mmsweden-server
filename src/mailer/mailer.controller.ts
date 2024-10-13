@@ -74,8 +74,6 @@ export class MailerController {
       templateName: 'contact-us',
     };
 
-    console.log(dto.templateData);
-
     try {
       const result = await this.mailerService.sendMail(dto);
       return {
