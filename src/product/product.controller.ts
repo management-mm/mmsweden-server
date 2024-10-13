@@ -77,7 +77,7 @@ export class ProductController {
     @Param('id')
     id: string,
     @Body()
-    product: UpdateProductDto
+    product: UpdateProductDto,
     @UploadedFiles()
     files: Express.Multer.File[]
   ): Promise<Product> {

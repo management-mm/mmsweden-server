@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    .header {
+      background-color: #f8f9fa;
+      padding: 10px;
+      text-align: center;
+    }
+  
+    .message {
+      padding: 20px;
+    }
+  
+    .footer {
+      text-align: center;
+      padding: 10px;
+      color: #666;
+      font-size: 12px;
+    }
+  </style>
+  <title>Sell to Us Request</title>
+</head>
+<body>
+  <div class="header">
+    <h1>New Sell to Us Request</h1>
+  </div>
+  <div class="message">
+    <div>
+      <h2>Seller's info</h2>
+      <div>
+        <p><strong>Name:</strong> {{name}}</p>
+        <p><strong>Email:</strong> {{email}}</p>
+        <p><strong>Phone:</strong> {{phone}}<span>{{countryPhone}}</span></p>
+      </div>
+    </div>
+    <div>
+      <h2>Product's info</h2>
+      <div>
+        <p><strong>Name:</strong> {{name}}</p>
+        <p><strong>Offering price:</strong> {{price}}</p>
+        <p><strong>Description:</strong> {{description}}</p>
+        <ul style="list-style: none; padding: 0;">
+          {{#each photos}}
+          <li style="display: inline-block; margin-right: 10px;">
+            <img src="{{this}}" alt="Photo" style="max-width: 100px; height: auto;"
+              onerror="this.onerror=null; this.src='fallback-image-url.jpg';">
+          </li>
+          {{/each}}
+        </ul>
+
+      </div>
+    </div>
+   
+  </div>
+  <div class="footer">
+    <p>© 2024 Your Company. All Rights Reserved.</p>
+  </div>
+</body>
+</html>
