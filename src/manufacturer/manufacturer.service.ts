@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { Query } from 'express-serve-static-core';
 import { Model } from 'mongoose';
 import { Manufacturer } from 'src/schemas/manufacturer.schema';
 
@@ -10,11 +11,20 @@ export class ManufacturerService {
     private manufacturerModel: Model<Manufacturer>
   ) {}
 
-  async findAll(): Promise<Manufacturer[]> {
-    return this.manufacturerModel.find().exec();
+  async findAll(query: Query): Promise<Manufacturer[]> {
+    const keywordCondition = query.keyword
+      ? {
+          name: {
+            $regex: query.keyword,
+            $options: 'i',
+          },
+        }
+      : {};
+    return this.manufacturerModel.find(keywordCondition).exec();
   }
 
   async findOrCreate(name: string): Promise<Manufacturer> {
+    if (name === 'Not mentioned') return { name: 'Not mentioned' };
     let manufacturer = await this.manufacturerModel.findOne({ name }).exec();
 
     if (!manufacturer) {
