@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { Query } from 'express-serve-static-core';
 import { Model } from 'mongoose';
+import { LanguageKeys } from 'src/common/types/language.types';
 import { Category } from 'src/schemas/category.schema';
 import { TranslationService } from 'src/translation/translation.service';
 
@@ -12,8 +14,18 @@ export class CategoryService {
     private readonly translationService: TranslationService
   ) {}
 
-  async findAll(): Promise<Category[]> {
-    return this.categoryModel.find().exec();
+  async findAll(query: Query): Promise<Category[]> {
+    const lang: LanguageKeys = query.lang as LanguageKeys;
+    const keywordCondition =
+      query.keyword && query.lang
+        ? {
+            [`name.${lang}`]: {
+              $regex: query.keyword,
+              $options: 'i',
+            },
+          }
+        : {};
+    return this.categoryModel.find(keywordCondition).exec();
   }
 
   async findOrCreate(

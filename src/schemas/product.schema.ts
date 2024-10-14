@@ -8,7 +8,7 @@ export class Product {
   @Prop({ type: Object })
   name: MultiLanguageString;
 
-  @Prop({ type: Number })
+  @Prop({ type: String })
   idNumber: string;
 
   @Prop({ type: Object })

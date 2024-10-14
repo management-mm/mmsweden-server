@@ -13,7 +13,8 @@ export class CloudinaryService {
       const upload = v2.uploader.upload_stream(
         {
           folder: folderName,
-          transformation: [{ quality: 'auto' }, { fetch_format: 'webp' }],
+          transformation: [{ fetch_format: 'webp' }, { quality: 'auto' }],
+          invalidate: true,
         },
         (error, result) => {
           if (error) {
