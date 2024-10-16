@@ -28,7 +28,7 @@ export class ProductService {
   ) {}
 
   async findAll(query: Query): Promise<{ products: Product[]; total: number }> {
-    const perPage = Number(query.perPage) || 15;
+    const perPage = Number(query.perPage) || 16;
     const currentPage = Number(query.page) || 1;
     const skip = perPage * (currentPage - 1);
     const sort: Record<string, SortOrder> =
@@ -247,6 +247,7 @@ export class ProductService {
       product.industries,
       sourceLanguage
     );
+    const specificDate = new Date('2024-10-01');
 
     const createdProduct = new this.productModel({
       ...product,
@@ -260,6 +261,8 @@ export class ProductService {
         },
         { versionKey: false }
       ),
+      createdAt: specificDate,
+    updatedAt: specificDate
     });
 
     return createdProduct.save();
