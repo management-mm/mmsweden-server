@@ -28,7 +28,7 @@ export class ProductService {
   ) {}
 
   async findAll(query: Query): Promise<{ products: Product[]; total: number }> {
-    const perPage = Number(query.perPage) || 15;
+    const perPage = Number(query.perPage) || 16;
     const currentPage = Number(query.page) || 1;
     const skip = perPage * (currentPage - 1);
     const sort: Record<string, SortOrder> =
