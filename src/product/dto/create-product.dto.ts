@@ -5,10 +5,10 @@ export class CreateProductDto {
   readonly idNumber: string;
   readonly description: string;
   readonly dimensions: string;
-  readonly photos: string[];
+  readonly photos: File[];
   readonly video: string;
   readonly category: string;
   readonly manufacturer: string;
-  readonly industries: string[];
+  readonly industries: string;
   readonly condition: 'used' | 'new';
 }

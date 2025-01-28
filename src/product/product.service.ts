@@ -218,11 +218,16 @@ export class ProductService {
     return Array.from(uniqueProductsMap.values());
   }
 
-  async create(product: UntranslatedProduct, query: Query): Promise<Product> {
+  async create(product: UntranslatedProduct, query: Query, files: Express.Multer.File[]): Promise<Product> {
     const sourceLanguage: 'en' | 'sv' = (query.lang as 'en' | 'sv') || 'en';
+    const photos: string[] = [];
+
+    const industriesArray: string[] = product.industries
+  ? product.industries.split(',').map((industry) => industry.trim())
+  : [];
     let nameTranslations: MultiLanguageString | undefined;
-    const shouldTranslateName: boolean =
-      Boolean(query.shouldTranslateName) || false;
+
+    const shouldTranslateName: boolean = query.shouldTranslateName === "true";
 
     if (shouldTranslateName) {
       nameTranslations = await this.translationService.translateText(
@@ -244,10 +249,24 @@ export class ProductService {
       product.manufacturer
     );
     const industries = await this.industryService.findOrCreate(
-      product.industries,
+      industriesArray,
       sourceLanguage
     );
     const specificDate = new Date('2024-10-01');
+
+    const categoryFolder = category.name.en.replace(/ /g, '-').toLowerCase();
+
+    const folderPath = `products/${categoryFolder}/${product.idNumber}`;
+
+    for (const file of files) {
+      const uploadedPhoto = await this.cloudinaryService.uploadImage(
+        file,
+        folderPath
+      );
+
+      photos.push(uploadedPhoto.secure_url);
+    }
+   
 
     const createdProduct = new this.productModel({
       ...product,
@@ -255,6 +274,7 @@ export class ProductService {
       description: descriptionTranslations,
       category: category.name,
       manufacturer: manufacturer.name,
+      photos: photos,
       industries: industries.map(
         industry => {
           return industry.name;
