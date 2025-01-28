@@ -4,32 +4,32 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
   timestamps: true,
 })
 export class UntranslatedProduct {
-  @Prop({ type: Object })
+  @Prop({ type: String })
   name: string;
 
   @Prop({ type: String })
   idNumber: string;
 
-  @Prop({ type: Object })
+  @Prop({ type: String })
   description: string;
 
   @Prop({ type: String })
   dimensions: string;
 
-  @Prop({ type: [String] })
-  photos: string[];
+  @Prop({ type: [File] })
+  photos: File[];
 
   @Prop({ type: String })
   video: string;
 
-  @Prop({ type: Object })
+  @Prop({ type: String })
   category: string;
 
   @Prop({ type: String })
   manufacturer: string;
 
-  @Prop({ type: [Object] })
-  industries: string[];
+  @Prop({ type: [String] })
+  industries: string;
 
   @Prop({ type: String })
   condition: 'used' | 'new';

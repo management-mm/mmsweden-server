@@ -62,13 +62,16 @@ export class ProductController {
 
   @Post()
   @UseGuards(AuthGuard())
+  @UseInterceptors(FilesInterceptor('photos'))
   async createProduct(
     @Query()
     query: ExpressQuery,
     @Body()
-    product: CreateProductDto
+    product: CreateProductDto,
+    @UploadedFiles()
+    files: Express.Multer.File[]
   ): Promise<Product> {
-    return this.productService.create(product, query);
+    return this.productService.create(product, query, files);
   }
 
   @Put(':id')
