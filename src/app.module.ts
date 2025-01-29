@@ -11,6 +11,7 @@ import { MailerModule } from './mailer/mailer.module';
 import { ManufacturerModule } from './manufacturer/manufacturer.module';
 import { ProductModule } from './product/product.module';
 import { TranslationModule } from './translation/translation.module';
+import { OpenAIModule } from './openai/openai.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { TranslationModule } from './translation/translation.module';
     MailerModule,
     CloudinaryModule,
     DeepLModule,
+    OpenAIModule
   ],
   controllers: [],
   providers: [],

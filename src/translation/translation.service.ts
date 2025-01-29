@@ -4,11 +4,12 @@ import {
   LanguageKeys,
   MultiLanguageString,
 } from 'src/common/types/language.types';
-import { DeepLService } from 'src/deep-l/deep-l.service';
+
+import { OpenAIService } from 'src/openai/openai.service';
 
 @Injectable()
 export class TranslationService {
-  constructor(private readonly deepLService: DeepLService) {}
+  constructor(private readonly openAIService: OpenAIService) {}
 
   async translateText(
     text: string,
@@ -25,7 +26,7 @@ export class TranslationService {
     ];
 
     const promises = targetLanguages.map(async lang => {
-      const translatedText = await this.deepLService.translate(text, lang);
+      const translatedText = await this.openAIService.translateText(text, lang);
       if (lang === 'en-US') {
         translations['en'] = translatedText;
         return;
