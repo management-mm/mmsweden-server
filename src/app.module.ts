@@ -9,9 +9,9 @@ import { DeepLModule } from './deep-l/deep-l.module';
 import { IndustryModule } from './industry/industry.module';
 import { MailerModule } from './mailer/mailer.module';
 import { ManufacturerModule } from './manufacturer/manufacturer.module';
+import { OpenAIModule } from './openai/openai.module';
 import { ProductModule } from './product/product.module';
 import { TranslationModule } from './translation/translation.module';
-import { OpenAIModule } from './openai/openai.module';
 
 @Module({
   imports: [
@@ -29,7 +29,7 @@ import { OpenAIModule } from './openai/openai.module';
     MailerModule,
     CloudinaryModule,
     DeepLModule,
-    OpenAIModule
+    OpenAIModule,
   ],
   controllers: [],
   providers: [],

@@ -1,14 +1,15 @@
 import { MultiLanguageString } from 'src/common/types/language.types';
 
 export class UpdateProductDto {
-  readonly name: MultiLanguageString;
+  readonly name: string;
   readonly idNumber: string;
-  readonly description: MultiLanguageString;
+  readonly description: string;
   readonly dimensions: string;
-  readonly photos: string[];
+  readonly photos: File[];
+  readonly photoQueue: string;
   readonly video: string;
-  readonly category: MultiLanguageString;
+  readonly category: string;
   readonly manufacturer: string;
-  readonly industries: MultiLanguageString[];
+  readonly industries: string;
   readonly condition: 'used' | 'new';
 }

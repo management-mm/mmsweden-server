@@ -48,17 +48,17 @@ export class ProductController {
     return this.productService.findRecommendedProductsById(id);
   }
 
-  @Put(':id/photos')
-  @UseInterceptors(FilesInterceptor('photos'))
-  @UseGuards(AuthGuard())
-  async updatePhotos(
-    @Param('id')
-    id: string,
-    @UploadedFiles()
-    files: Express.Multer.File[]
-  ): Promise<Product> {
-    return this.productService.updatePhotos(id, files);
-  }
+  // @Put(':id/photos')
+  // @UseInterceptors(FilesInterceptor('photos'))
+  // @UseGuards(AuthGuard())
+  // async updatePhotos(
+  //   @Param('id')
+  //   id: string,
+  //   @UploadedFiles()
+  //   files: Express.Multer.File[]
+  // ): Promise<string[]> {
+  //   return this.productService.updatePhotos(id, files);
+  // }
 
   @Post()
   @UseGuards(AuthGuard())
@@ -76,6 +76,7 @@ export class ProductController {
 
   @Put(':id')
   @UseGuards(AuthGuard())
+  @UseInterceptors(FilesInterceptor('photos'))
   async updateProduct(
     @Param('id')
     id: string,
