@@ -13,6 +13,7 @@ import { IndustryService } from 'src/industry/industry.service';
 import { ManufacturerService } from 'src/manufacturer/manufacturer.service';
 import { Product } from 'src/schemas/product.schema';
 import { UntranslatedProduct } from 'src/schemas/untranslated-product.schema';
+import { UpdateProduct } from 'src/schemas/update-product';
 import { TranslationService } from 'src/translation/translation.service';
 
 @Injectable()
@@ -218,16 +219,20 @@ export class ProductService {
     return Array.from(uniqueProductsMap.values());
   }
 
-  async create(product: UntranslatedProduct, query: Query, files: Express.Multer.File[]): Promise<Product> {
+  async create(
+    product: UntranslatedProduct,
+    query: Query,
+    files: Express.Multer.File[]
+  ): Promise<Product> {
     const sourceLanguage: 'en' | 'sv' = (query.lang as 'en' | 'sv') || 'en';
     const photos: string[] = [];
 
     const industriesArray: string[] = product.industries
-  ? product.industries.split(',').map((industry) => industry.trim())
-  : [];
+      ? product.industries.split(',').map(industry => industry.trim())
+      : [];
     let nameTranslations: MultiLanguageString | undefined;
 
-    const shouldTranslateName: boolean = query.shouldTranslateName === "true";
+    const shouldTranslateName: boolean = query.shouldTranslateName === 'true';
 
     if (shouldTranslateName) {
       nameTranslations = await this.translationService.translateText(
@@ -266,7 +271,6 @@ export class ProductService {
 
       photos.push(uploadedPhoto.secure_url);
     }
-   
 
     const createdProduct = new this.productModel({
       ...product,
@@ -282,41 +286,10 @@ export class ProductService {
         { versionKey: false }
       ),
       createdAt: specificDate,
-    updatedAt: specificDate
+      updatedAt: specificDate,
     });
 
     return createdProduct.save();
-  }
-
-  async updatePhotos(
-    id: string,
-    files: Express.Multer.File[]
-  ): Promise<Product> {
-    const photos: string[] = [];
-    const product = await this.productModel.findById(id);
-    const { category, idNumber } = product;
-
-    const categoryFolder = category.en.replace(/ /g, '-').toLowerCase();
-
-    const folderPath = `products/${categoryFolder}/${idNumber}`;
-
-    for (const file of files) {
-      const uploadedPhoto = await this.cloudinaryService.uploadImage(
-        file,
-        folderPath
-      );
-
-      photos.push(uploadedPhoto.secure_url);
-    }
-
-    return await this.productModel.findByIdAndUpdate(
-      id,
-      { $set: { photos: photos.reverse() } },
-      {
-        new: true,
-        runValidators: true,
-      }
-    );
   }
 
   async findById(id: string): Promise<Product> {
@@ -329,30 +302,98 @@ export class ProductService {
     return product;
   }
 
+  async uploadProductPhotos(
+    id: string,
+    files: Express.Multer.File[]
+  ): Promise<string[]> {
+    if (!files || files.length === 0) {
+      return [];
+    }
+
+    const product = await this.productModel.findById(id);
+    if (!product) {
+      throw new NotFoundException(`Product with id ${id} not found`);
+    }
+
+    const { category, idNumber } = product;
+    const categoryFolder = category.en.replace(/ /g, '-').toLowerCase();
+    const folderPath = `products/${categoryFolder}/${idNumber}`;
+
+    const uploadPromises = files.map(file =>
+      this.cloudinaryService
+        .uploadImage(file, folderPath)
+        .then(uploadedPhoto => uploadedPhoto.secure_url)
+    );
+
+    return await Promise.all(uploadPromises);
+  }
   async updateById(
     id: string,
-    product: Product,
+    product: UpdateProduct,
     files: Express.Multer.File[]
   ): Promise<Product> {
-    const photos: string[] = [];
-    const { category, idNumber } = product;
-
-    if (files && files.length > 0) {
-      const categoryFolder = category.en.replace(/ /g, '-').toLowerCase();
-      const folderPath = `products/${categoryFolder}/${idNumber}`;
-
-      for (const file of files) {
-        const uploadedPhoto = await this.cloudinaryService.uploadImage(
-          file,
-          folderPath
-        );
-        photos.push(uploadedPhoto.secure_url);
+    function tryParseJSON(value: any): any {
+      try {
+        const parsed = JSON.parse(value);
+        return typeof parsed === 'object' && parsed !== null ? parsed : value;
+      } catch (error) {
+        return value;
       }
+    }
+    const urlsThatWereFiles: string[] = await this.uploadProductPhotos(
+      id,
+      files
+    );
+    const photos = product.photoQueue
+      ? product.photoQueue.split(',').map(photo => photo.trim())
+      : [];
+
+    let j = 0;
+    let name = product.name;
+    let description = product.description;
+
+    for (let i = 0; i < photos.length; i++) {
+      if (photos[i] === 'file' && j < urlsThatWereFiles.length) {
+        photos[i] = urlsThatWereFiles[j];
+        j++;
+      }
+    }
+
+    const industriesArray: string[] = product.industries
+      ? product.industries.split(',').map(industry => industry.trim())
+      : [];
+    const category = await this.categoryService.findOrCreate(
+      product.category,
+      'en'
+    );
+    const manufacturer = await this.manufacturerService.findOrCreate(
+      product.manufacturer
+    );
+    const industries = await this.industryService.findOrCreate(
+      industriesArray,
+      'en'
+    );
+    name = tryParseJSON(product.name);
+    if (typeof product.description === 'string') {
+      description = JSON.parse(product.description);
     }
 
     return await this.productModel.findByIdAndUpdate(
       id,
-      { $set: { ...product, photos } },
+      {
+        $set: {
+          name,
+          idNumber: product.idNumber,
+          dimensions: product.dimensions,
+          description,
+          category: category.name,
+          manufacturer: manufacturer.name,
+          industries: industries.map(industry => industry.name),
+          photos,
+          condition: product.condition,
+          video: product.video,
+        },
+      },
       {
         new: true,
         runValidators: true,

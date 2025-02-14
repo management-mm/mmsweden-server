@@ -4,7 +4,6 @@ import {
   LanguageKeys,
   MultiLanguageString,
 } from 'src/common/types/language.types';
-
 import { OpenAIService } from 'src/openai/openai.service';
 
 @Injectable()
