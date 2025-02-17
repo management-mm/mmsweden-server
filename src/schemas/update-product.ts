@@ -36,6 +36,9 @@ export class UpdateProduct {
 
   @Prop({ type: String })
   condition: 'used' | 'new';
+
+  @Prop({ type: String })
+  deletionDate?: string;
 }
 
 export const UpdateProductSchema = SchemaFactory.createForClass(UpdateProduct);

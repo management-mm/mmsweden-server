@@ -2,6 +2,8 @@ import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.int
 import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from './app.module';
+import { startCronJobs } from './cron-jobs';
+import { ProductService } from './product/product.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -15,5 +17,9 @@ async function bootstrap() {
   app.enableCors(corsOptions);
 
   await app.listen(3000);
+
+  const productService = app.get(ProductService);
+
+  startCronJobs(productService);
 }
 bootstrap();
