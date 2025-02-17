@@ -34,6 +34,9 @@ export class Product {
 
   @Prop({ type: String })
   condition: 'used' | 'new';
+
+  @Prop({ type: Date })
+  deletionDate?: Date;
 }
 
 export const ProductSchema = SchemaFactory.createForClass(Product);

@@ -12,4 +12,5 @@ export class UpdateProductDto {
   readonly manufacturer: string;
   readonly industries: string;
   readonly condition: 'used' | 'new';
+  readonly deletionDate?: string;
 }

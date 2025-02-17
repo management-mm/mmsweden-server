@@ -327,6 +327,18 @@ export class ProductService {
 
     return await Promise.all(uploadPromises);
   }
+
+  async deleteExpiredProducts(): Promise<void> {
+    const now = new Date();
+
+    now.setHours(0, 0, 0, 0);
+
+    console.log('today', now);
+
+    await this.productModel.deleteMany({
+      deletionDate: { $lte: now },
+    });
+  }
   async updateById(
     id: string,
     product: UpdateProduct,
@@ -378,6 +390,13 @@ export class ProductService {
       description = JSON.parse(product.description);
     }
 
+    const deletionDate = product.deletionDate
+      ? new Date(product.deletionDate)
+      : null;
+    if (deletionDate) {
+      deletionDate.setHours(0, 0, 0, 0);
+    }
+
     return await this.productModel.findByIdAndUpdate(
       id,
       {
@@ -392,6 +411,7 @@ export class ProductService {
           photos,
           condition: product.condition,
           video: product.video,
+          deletionDate,
         },
       },
       {
