@@ -363,6 +363,7 @@ export class ProductService {
     let j = 0;
     let name = product.name;
     let description = product.description;
+    let deletionDate;
 
     for (let i = 0; i < photos.length; i++) {
       if (photos[i] === 'file' && j < urlsThatWereFiles.length) {
@@ -390,13 +391,19 @@ export class ProductService {
       description = JSON.parse(product.description);
     }
 
-    const deletionDate = product.deletionDate
+    if (product.deletionDate === 'null') {
+      deletionDate = null
+    }
+    else {
+      deletionDate = product.deletionDate
       ? new Date(product.deletionDate)
       : null;
-    if (deletionDate) {
+    
+    }
+    
+if (deletionDate) {
       deletionDate.setHours(0, 0, 0, 0);
     }
-
     return await this.productModel.findByIdAndUpdate(
       id,
       {
