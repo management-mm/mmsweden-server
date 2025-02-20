@@ -1,9 +1,10 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post, Request, UseGuards } from '@nestjs/common';
 
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { SignUpDto } from './dto/signup.dto';
 import { User } from './schemas/user.schema';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('auth')
 export class AuthController {
@@ -19,8 +20,10 @@ export class AuthController {
     return this.authService.login(loginDto);
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @Get('/current')
-  getCurrent(@Body() userId: string): Promise<{email: string}> {
-    return this.authService.getCurrent(userId)
+  async getCurrent(@Request() req): Promise<{ email: string }> {
+    const user = await this.authService.getCurrent(req.user.id);
+    return { email: user.email };
   }
 }
