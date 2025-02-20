@@ -392,16 +392,14 @@ export class ProductService {
     }
 
     if (product.deletionDate === 'null') {
-      deletionDate = null
-    }
-    else {
+      deletionDate = null;
+    } else {
       deletionDate = product.deletionDate
-      ? new Date(product.deletionDate)
-      : null;
-    
+        ? new Date(product.deletionDate)
+        : null;
     }
-    
-if (deletionDate) {
+
+    if (deletionDate) {
       deletionDate.setHours(0, 0, 0, 0);
     }
     return await this.productModel.findByIdAndUpdate(
