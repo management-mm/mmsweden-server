@@ -46,4 +46,12 @@ export class AuthService {
     const token = this.jwtService.sign({ id: user._id });
     return { token };
   }
+
+  async getCurrent(userId: string): Promise<{ email: string }> {
+    const user = await this.userModel.findById(userId).select('email');
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+    return { email: user.email };
+  }
 }
