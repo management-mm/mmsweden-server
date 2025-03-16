@@ -37,4 +37,13 @@ export class ManufacturerService {
 
     return manufacturer;
   }
+
+  async deleteByName(name: string): Promise<Manufacturer> {
+    return await this.manufacturerModel.findOneAndDelete({
+      ['name']: {
+        $regex: name,
+        $options: 'i',
+      },
+    });
+  }
 }

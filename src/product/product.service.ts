@@ -11,6 +11,9 @@ import {
 } from 'src/common/types/language.types';
 import { IndustryService } from 'src/industry/industry.service';
 import { ManufacturerService } from 'src/manufacturer/manufacturer.service';
+import { Category } from 'src/schemas/category.schema';
+import { Industry } from 'src/schemas/industry.schema';
+import { Manufacturer } from 'src/schemas/manufacturer.schema';
 import { Product } from 'src/schemas/product.schema';
 import { UntranslatedProduct } from 'src/schemas/untranslated-product.schema';
 import { UpdateProduct } from 'src/schemas/update-product';
@@ -224,15 +227,17 @@ export class ProductService {
     query: Query,
     files: Express.Multer.File[]
   ): Promise<Product> {
+    const shouldTranslateName: boolean = query.shouldTranslateName === 'true';
     const sourceLanguage: 'en' | 'sv' = (query.lang as 'en' | 'sv') || 'en';
     const photos: string[] = [];
+    let nameTranslations: MultiLanguageString | undefined;
+    let category: Category;
+    let manufacturer: Manufacturer;
+    let industries: Industry[];
 
     const industriesArray: string[] = product.industries
       ? product.industries.split(',').map(industry => industry.trim())
       : [];
-    let nameTranslations: MultiLanguageString | undefined;
-
-    const shouldTranslateName: boolean = query.shouldTranslateName === 'true';
 
     if (shouldTranslateName) {
       nameTranslations = await this.translationService.translateText(
@@ -246,18 +251,25 @@ export class ProductService {
       sourceLanguage
     );
 
-    const category = await this.categoryService.findOrCreate(
-      product.category,
-      sourceLanguage
-    );
-    const manufacturer = await this.manufacturerService.findOrCreate(
-      product.manufacturer
-    );
-    const industries = await this.industryService.findOrCreate(
-      industriesArray,
-      sourceLanguage
-    );
-    const specificDate = new Date('2024-10-01');
+    if (product.category) {
+      category = await this.categoryService.findOrCreate(
+        product.category,
+        sourceLanguage
+      );
+    }
+
+    if (product.manufacturer) {
+      manufacturer = await this.manufacturerService.findOrCreate(
+        product.manufacturer
+      );
+    }
+
+    if (product.industries) {
+      industries = await this.industryService.findOrCreate(
+        industriesArray,
+        sourceLanguage
+      );
+    }
 
     const categoryFolder = category.name.en.replace(/ /g, '-').toLowerCase();
 
@@ -277,7 +289,7 @@ export class ProductService {
       name: nameTranslations || product.name,
       description: descriptionTranslations,
       category: category.name,
-      manufacturer: manufacturer.name,
+      ...(manufacturer && { manufacturer: manufacturer.name }),
       photos: photos,
       industries: industries.map(
         industry => {
@@ -285,8 +297,6 @@ export class ProductService {
         },
         { versionKey: false }
       ),
-      createdAt: specificDate,
-      updatedAt: specificDate,
     });
 
     return createdProduct.save();
@@ -346,12 +356,11 @@ export class ProductService {
     product: UpdateProduct,
     files: Express.Multer.File[]
   ): Promise<Product> {
-
     const shouldTranslateName: boolean = query.shouldTranslateName === 'true';
     let nameTranslations: MultiLanguageString | undefined;
-    let descriptionTranslations: MultiLanguageString | undefined
+    let descriptionTranslations: MultiLanguageString | undefined;
     const sourceLanguage: 'en' | 'sv' = (query.lang as 'en' | 'sv') || 'en';
-    
+
     const urlsThatWereFiles: string[] = await this.uploadProductPhotos(
       id,
       files
@@ -364,7 +373,7 @@ export class ProductService {
     let name = product.name;
     let description = product.description;
     let deletionDate;
-    
+
     function tryParseJSON(value: any): any {
       try {
         const parsed = JSON.parse(value);
@@ -395,23 +404,21 @@ export class ProductService {
       industriesArray,
       'en'
     );
-   
 
     name = tryParseJSON(product.name);
-     if (shouldTranslateName) {
+    if (shouldTranslateName) {
       nameTranslations = await this.translationService.translateText(
         product.name,
         sourceLanguage
       );
     }
-    description = tryParseJSON(product.description)
-    
-    
+    description = tryParseJSON(product.description);
+
     if (typeof description === 'string') {
       descriptionTranslations = await this.translationService.translateText(
-      product.description,
+        product.description,
         sourceLanguage
-      )
+      );
     }
 
     if (product.deletionDate === 'null') {
@@ -449,7 +456,32 @@ export class ProductService {
     );
   }
 
-  async deleteById(id: string): Promise<Product> {
-    return await this.productModel.findByIdAndDelete(id);
+  async deleteById(id: string): Promise<Product | null> {
+    const product = await this.productModel.findByIdAndDelete(id);
+    let otherProductsWithSameManufacturer;
+
+    const otherProductsWithSameCategory = await this.productModel.findOne({
+      [`category.${LanguageKeys.EN}`]: {
+        $regex: product.category.en,
+        $options: 'i',
+      },
+    });
+    if (product.manufacturer) {
+      otherProductsWithSameManufacturer = await this.productModel.findOne({
+        ['manufacturer']: {
+          $regex: product.manufacturer,
+          $options: 'i',
+        },
+      });
+    }
+
+    if (otherProductsWithSameCategory) {
+      this.categoryService.deleteByName(product.category);
+    }
+    if (otherProductsWithSameManufacturer) {
+      this.manufacturerService.deleteByName(product.manufacturer);
+    }
+
+    return product;
   }
 }

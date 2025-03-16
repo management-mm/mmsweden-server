@@ -2,7 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Query } from 'express-serve-static-core';
 import { Model } from 'mongoose';
-import { LanguageKeys } from 'src/common/types/language.types';
+import {
+  LanguageKeys,
+  MultiLanguageString,
+} from 'src/common/types/language.types';
 import { Category } from 'src/schemas/category.schema';
 import { TranslationService } from 'src/translation/translation.service';
 
@@ -49,5 +52,14 @@ export class CategoryService {
     }
 
     return category;
+  }
+
+  async deleteByName(name: MultiLanguageString): Promise<Category> {
+    return await this.categoryModel.findOneAndDelete({
+      [`name.${LanguageKeys.EN}`]: {
+        $regex: name.en,
+        $options: 'i',
+      },
+    });
   }
 }
