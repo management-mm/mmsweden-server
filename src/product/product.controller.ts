@@ -80,12 +80,14 @@ export class ProductController {
   async updateProduct(
     @Param('id')
     id: string,
+    @Query()
+    query: ExpressQuery,
     @Body()
     product: UpdateProductDto,
     @UploadedFiles()
     files: Express.Multer.File[]
   ): Promise<Product> {
-    return this.productService.updateById(id, product, files);
+    return this.productService.updateById(id, query, product, files);
   }
 
   @Delete(':id')
