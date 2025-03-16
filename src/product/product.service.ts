@@ -339,19 +339,19 @@ export class ProductService {
       deletionDate: { $lte: now },
     });
   }
+
   async updateById(
     id: string,
+    query: Query,
     product: UpdateProduct,
     files: Express.Multer.File[]
   ): Promise<Product> {
-    function tryParseJSON(value: any): any {
-      try {
-        const parsed = JSON.parse(value);
-        return typeof parsed === 'object' && parsed !== null ? parsed : value;
-      } catch (error) {
-        return value;
-      }
-    }
+
+    const shouldTranslateName: boolean = query.shouldTranslateName === 'true';
+    let nameTranslations: MultiLanguageString | undefined;
+    let descriptionTranslations: MultiLanguageString | undefined
+    const sourceLanguage: 'en' | 'sv' = (query.lang as 'en' | 'sv') || 'en';
+    
     const urlsThatWereFiles: string[] = await this.uploadProductPhotos(
       id,
       files
@@ -364,6 +364,15 @@ export class ProductService {
     let name = product.name;
     let description = product.description;
     let deletionDate;
+    
+    function tryParseJSON(value: any): any {
+      try {
+        const parsed = JSON.parse(value);
+        return typeof parsed === 'object' && parsed !== null ? parsed : value;
+      } catch (error) {
+        return value;
+      }
+    }
 
     for (let i = 0; i < photos.length; i++) {
       if (photos[i] === 'file' && j < urlsThatWereFiles.length) {
@@ -386,9 +395,23 @@ export class ProductService {
       industriesArray,
       'en'
     );
+   
+
     name = tryParseJSON(product.name);
-    if (typeof product.description === 'string') {
-      description = JSON.parse(product.description);
+     if (shouldTranslateName) {
+      nameTranslations = await this.translationService.translateText(
+        product.name,
+        sourceLanguage
+      );
+    }
+    description = tryParseJSON(product.description)
+    
+    
+    if (typeof description === 'string') {
+      descriptionTranslations = await this.translationService.translateText(
+      product.description,
+        sourceLanguage
+      )
     }
 
     if (product.deletionDate === 'null') {
@@ -406,10 +429,10 @@ export class ProductService {
       id,
       {
         $set: {
-          name,
+          name: nameTranslations || name,
           idNumber: product.idNumber,
           dimensions: product.dimensions,
-          description,
+          description: descriptionTranslations || description,
           category: category.name,
           manufacturer: manufacturer.name,
           industries: industries.map(industry => industry.name),
