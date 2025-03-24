@@ -10,7 +10,7 @@ export class ContactUsRequestDto {
   email: string;
 
   @IsNotEmpty()
-  @IsPhoneNumber()
+  @IsString()
   phone: string;
 
   @IsNotEmpty()

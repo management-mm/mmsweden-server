@@ -10,7 +10,7 @@ export class SellToUsRequestDto {
   email: string;
 
   @IsNotEmpty()
-  @IsPhoneNumber()
+  @IsString()
   phone: string;
 
   @IsNotEmpty()
