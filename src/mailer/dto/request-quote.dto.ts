@@ -33,7 +33,7 @@ export class RequestQuoteDto {
   email: string;
 
   @IsNotEmpty()
-  @IsPhoneNumber()
+  @IsString()
   phone: string;
 
   @IsNotEmpty()
