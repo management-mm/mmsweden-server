@@ -1,8 +1,18 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Put,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { Query as ExpressQuery } from 'express-serve-static-core';
 import { Manufacturer } from 'src/schemas/manufacturer.schema';
 
 import { ManufacturerService } from './manufacturer.service';
+import { UpdateManufacturerDto } from './update-manufacturer.dto';
 
 @Controller('manufacturers')
 export class ManufacturerController {
@@ -14,5 +24,16 @@ export class ManufacturerController {
     query: ExpressQuery
   ): Promise<Manufacturer[]> {
     return this.manufacturerService.findAll(query);
+  }
+
+  @Put(':id')
+  @UseGuards(AuthGuard())
+  async updateManufacturer(
+    @Param('id')
+    id: string,
+    @Body()
+    manufacturer: UpdateManufacturerDto
+  ): Promise<void> {
+    return this.manufacturerService.updateById(id, manufacturer);
   }
 }
