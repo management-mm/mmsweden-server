@@ -7,13 +7,18 @@ import {
   MultiLanguageString,
 } from 'src/common/types/language.types';
 import { Category } from 'src/schemas/category.schema';
+import { Product } from 'src/schemas/product.schema';
 import { TranslationService } from 'src/translation/translation.service';
+
+import { UpdateCategoryDto } from './update-category.dto';
 
 @Injectable()
 export class CategoryService {
   constructor(
     @InjectModel(Category.name)
     private categoryModel: Model<Category>,
+    @InjectModel(Product.name)
+    private productModel: Model<Product>,
     private readonly translationService: TranslationService
   ) {}
 
@@ -52,6 +57,26 @@ export class CategoryService {
     }
 
     return category;
+  }
+
+  async updateById(id: string, category: UpdateCategoryDto): Promise<void> {
+    const categoryName = (await this.categoryModel.findById(id)).name;
+    await this.categoryModel.findByIdAndUpdate(id, {
+      $set: {
+        name: category,
+      },
+    });
+    const productsToUpdate = await this.productModel.find({
+      [`category.${LanguageKeys.EN}`]: {
+        $regex: categoryName.en,
+        $options: 'i',
+      },
+    });
+    await Promise.all(
+      productsToUpdate.map(product =>
+        this.productModel.findByIdAndUpdate(product._id, { $set: { category } })
+      )
+    );
   }
 
   async deleteByName(name: MultiLanguageString): Promise<Category> {

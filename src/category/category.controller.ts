@@ -1,8 +1,18 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Put,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { Query as ExpressQuery } from 'express-serve-static-core';
 import { Category } from 'src/schemas/category.schema';
 
 import { CategoryService } from './category.service';
+import { UpdateCategoryDto } from './update-category.dto';
 
 @Controller('categories')
 export class CategoryController {
@@ -14,5 +24,16 @@ export class CategoryController {
     query: ExpressQuery
   ): Promise<Category[]> {
     return this.categoryService.findAll(query);
+  }
+
+  @Put(':id')
+  @UseGuards(AuthGuard())
+  async updateCategory(
+    @Param('id')
+    id: string,
+    @Body()
+    category: UpdateCategoryDto
+  ): Promise<void> {
+    return this.categoryService.updateById(id, category);
   }
 }
