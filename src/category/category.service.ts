@@ -59,22 +59,26 @@ export class CategoryService {
     return category;
   }
 
-  async updateById(id: string, category: UpdateCategoryDto): Promise<void> {
-    const categoryName = (await this.categoryModel.findById(id)).name;
+  async updateById(id: string, categoryDto: UpdateCategoryDto): Promise<void> {
+    const oldCategory = await this.categoryModel.findById(id);
+    if (!oldCategory) return;
+
     await this.categoryModel.findByIdAndUpdate(id, {
-      $set: {
-        name: category,
-      },
+      $set: { name: categoryDto.name },
     });
+
     const productsToUpdate = await this.productModel.find({
       [`category.${LanguageKeys.EN}`]: {
-        $regex: categoryName.en,
+        $regex: oldCategory.name.en,
         $options: 'i',
       },
     });
+
     await Promise.all(
       productsToUpdate.map(product =>
-        this.productModel.findByIdAndUpdate(product._id, { $set: { category } })
+        this.productModel.findByIdAndUpdate(product._id, {
+          $set: { category: categoryDto.name },
+        })
       )
     );
   }
