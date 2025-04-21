@@ -59,37 +59,40 @@ export class IndustryService {
   }
 
   async updateById(id: string, industry: UpdateIndustryDto): Promise<void> {
-    const industryName = (await this.industryModel.findById(id)).name;
+    const existingIndustry = await this.industryModel.findById(id);
+
+    const industryName = existingIndustry.name;
+
     await this.industryModel.findByIdAndUpdate(id, {
       $set: {
-        name: industry,
+        name: industry.name,
       },
     });
-    const productsToUpdate = await this.productModel.find({
-      industries: {
-        $elemMatch: {
-          [`${LanguageKeys.EN}`]: {
-            $regex: industryName.en,
-            $options: 'i',
+
+    const productsToUpdate = await this.productModel
+      .find({
+        industries: {
+          $elemMatch: {
+            [`${LanguageKeys.EN}`]: {
+              $regex: industryName.en,
+              $options: 'i',
+            },
           },
         },
-      },
-    });
+      })
+      .lean();
 
     await Promise.all(
-      productsToUpdate.map(async product => {
-        const updatedIndustries = product.industries.map(ind => {
-          if (ind.en.toLowerCase() === industryName.en.toLowerCase()) {
-            return industry;
-          }
-          return ind;
-        });
-
-        return await this.productModel.findByIdAndUpdate(
-          product._id,
-          { $set: { industries: updatedIndustries } },
-          { new: true }
+      productsToUpdate.map(product => {
+        const updatedIndustries = product.industries.map(ind =>
+          ind.en.toLowerCase() === industryName.en.toLowerCase()
+            ? industry.name
+            : ind
         );
+
+        return this.productModel.findByIdAndUpdate(product._id, {
+          $set: { industries: updatedIndustries },
+        });
       })
     );
   }

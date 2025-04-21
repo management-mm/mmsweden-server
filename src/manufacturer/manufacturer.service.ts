@@ -45,24 +45,26 @@ export class ManufacturerService {
 
   async updateById(
     id: string,
-    manufacturer: UpdateManufacturerDto
+    manufacturerDto: UpdateManufacturerDto
   ): Promise<void> {
-    const manufacturerName = (await this.manufacturerModel.findById(id)).name;
+    const oldManufacturer = await this.manufacturerModel.findById(id);
+    if (!oldManufacturer) return;
+
     await this.manufacturerModel.findByIdAndUpdate(id, {
-      $set: {
-        name: manufacturer.name,
-      },
+      $set: { name: manufacturerDto.name },
     });
+
     const productsToUpdate = await this.productModel.find({
-      ['manufacturer']: {
-        $regex: manufacturerName,
+      manufacturer: {
+        $regex: oldManufacturer.name,
         $options: 'i',
       },
     });
+
     await Promise.all(
       productsToUpdate.map(product =>
         this.productModel.findByIdAndUpdate(product._id, {
-          $set: { manufacturer: manufacturer.name },
+          $set: { manufacturer: manufacturerDto.name },
         })
       )
     );
