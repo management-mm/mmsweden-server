@@ -72,7 +72,7 @@ export class CategoryService {
         $regex: oldCategory.name.en,
         $options: 'i',
       },
-    });
+    }).limit(50);
 
     await Promise.all(
       productsToUpdate.map(product =>
