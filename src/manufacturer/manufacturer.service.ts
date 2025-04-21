@@ -59,7 +59,7 @@ export class ManufacturerService {
         $regex: oldManufacturer.name,
         $options: 'i',
       },
-    });
+    }).limit(50);;
 
     await Promise.all(
       productsToUpdate.map(product =>

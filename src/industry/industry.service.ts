@@ -80,7 +80,7 @@ export class IndustryService {
           },
         },
       })
-      .lean();
+      .lean().limit(50);
 
     await Promise.all(
       productsToUpdate.map(product => {
