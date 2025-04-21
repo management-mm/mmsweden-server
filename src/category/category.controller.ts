@@ -26,14 +26,14 @@ export class CategoryController {
     return this.categoryService.findAll(query);
   }
 
-  @Put(':id')
-  @UseGuards(AuthGuard())
-  async updateCategory(
-    @Param('id')
-    id: string,
-    @Body()
-    category: UpdateCategoryDto
-  ): Promise<void> {
-    return this.categoryService.updateById(id, category);
-  }
+  // @Put(':id')
+  // @UseGuards(AuthGuard())
+  // async updateCategory(
+  //   @Param('id')
+  //   id: string,
+  //   @Body()
+  //   category: UpdateCategoryDto
+  // ): Promise<void> {
+  //   return this.categoryService.updateById(id, category);
+  // }
 }
