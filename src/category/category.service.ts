@@ -60,28 +60,44 @@ export class CategoryService {
   }
 
   async updateById(id: string, categoryDto: UpdateCategoryDto): Promise<void> {
-    const oldCategory = await this.categoryModel.findById(id);
-    if (!oldCategory) return;
+  const oldCategory = await this.categoryModel.findById(id);
+  if (!oldCategory) return;
 
-    await this.categoryModel.findByIdAndUpdate(id, {
-      $set: { name: categoryDto.name },
-    });
+  await this.categoryModel.findByIdAndUpdate(id, {
+    $set: { name: categoryDto.name },
+  });
 
-    const productsToUpdate = await this.productModel.find({
-      [`category.${LanguageKeys.EN}`]: {
-        $regex: oldCategory.name.en,
-        $options: 'i',
+  let skip = 0;
+  const limit = 50;
+  let productsToUpdate;
+
+  do {
+    productsToUpdate = await this.productModel
+      .find({
+        [`category.${LanguageKeys.EN}`]: {
+          $regex: oldCategory.name.en,
+          $options: 'i',
+        },
+      })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    const bulkOperations = productsToUpdate.map(product => ({
+      updateOne: {
+        filter: { _id: product._id },
+        update: { $set: { category: categoryDto.name } },
       },
-    }).limit(50);
+    }));
 
-    await Promise.all(
-      productsToUpdate.map(product =>
-        this.productModel.findByIdAndUpdate(product._id, {
-          $set: { category: categoryDto.name },
-        })
-      )
-    );
-  }
+    if (bulkOperations.length > 0) {
+      await this.productModel.bulkWrite(bulkOperations);
+    }
+
+    skip += limit;
+  } while (productsToUpdate.length === limit);
+}
+
 
   async deleteByName(name: MultiLanguageString): Promise<Category> {
     return await this.categoryModel.findOneAndDelete({

@@ -17,18 +17,18 @@ export class IndustryService {
     @InjectModel(Product.name)
     private productModel: Model<Product>,
     private readonly translationService: TranslationService
-  ) {}
+  ) { }
 
   async findAll(query: Query): Promise<Industry[]> {
     const lang: LanguageKeys = query.lang as LanguageKeys;
     const keywordCondition =
       query.keyword && query.lang
         ? {
-            [`name.${lang}`]: {
-              $regex: query.keyword,
-              $options: 'i',
-            },
-          }
+          [`name.${lang}`]: {
+            $regex: query.keyword,
+            $options: 'i',
+          },
+        }
         : {};
     return this.industryModel.find(keywordCondition).exec();
   }
@@ -61,39 +61,55 @@ export class IndustryService {
   async updateById(id: string, industry: UpdateIndustryDto): Promise<void> {
     const existingIndustry = await this.industryModel.findById(id);
 
+    if (!existingIndustry) return;
+
     const industryName = existingIndustry.name;
 
     await this.industryModel.findByIdAndUpdate(id, {
-      $set: {
-        name: industry.name,
-      },
+      $set: { name: industry.name },
     });
 
-    const productsToUpdate = await this.productModel
-      .find({
-        industries: {
-          $elemMatch: {
-            [`${LanguageKeys.EN}`]: {
-              $regex: industryName.en,
-              $options: 'i',
+    let skip = 0;
+    const limit = 50;
+    let productsToUpdate;
+
+    do {
+      productsToUpdate = await this.productModel
+        .find({
+          industries: {
+            $elemMatch: {
+              [`${LanguageKeys.EN}`]: {
+                $regex: industryName.en,
+                $options: 'i',
+              },
             },
           },
-        },
-      })
-      .lean().limit(50);
+        })
+        .skip(skip)
+        .limit(limit)
+        .lean();
 
-    await Promise.all(
-      productsToUpdate.map(product => {
+      const bulkOperations = productsToUpdate.map(product => {
         const updatedIndustries = product.industries.map(ind =>
           ind.en.toLowerCase() === industryName.en.toLowerCase()
             ? industry.name
             : ind
         );
 
-        return this.productModel.findByIdAndUpdate(product._id, {
-          $set: { industries: updatedIndustries },
-        });
-      })
-    );
+        return {
+          updateOne: {
+            filter: { _id: product._id },
+            update: { $set: { industries: updatedIndustries } },
+          },
+        };
+      });
+
+      if (bulkOperations.length > 0) {
+        await this.productModel.bulkWrite(bulkOperations);
+      }
+
+      skip += limit;
+    } while (productsToUpdate.length === limit);
   }
 }
+

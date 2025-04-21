@@ -43,32 +43,44 @@ export class ManufacturerService {
     return manufacturer;
   }
 
-  async updateById(
-    id: string,
-    manufacturerDto: UpdateManufacturerDto
-  ): Promise<void> {
-    const oldManufacturer = await this.manufacturerModel.findById(id);
-    if (!oldManufacturer) return;
+  async updateById(id: string, manufacturerDto: UpdateManufacturerDto): Promise<void> {
+  const oldManufacturer = await this.manufacturerModel.findById(id);
+  if (!oldManufacturer) return;
 
-    await this.manufacturerModel.findByIdAndUpdate(id, {
-      $set: { name: manufacturerDto.name },
+  await this.manufacturerModel.findByIdAndUpdate(id, {
+    $set: { name: manufacturerDto.name },
+  });
+
+  let skip = 0;
+  const limit = 50;
+  let productsToUpdate;
+
+  do {
+    productsToUpdate = await this.productModel
+      .find({
+        manufacturer: { $regex: oldManufacturer.name, $options: 'i' },
+      })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    const bulkOperations = productsToUpdate.map(product => {
+      return {
+        updateOne: {
+          filter: { _id: product._id },
+          update: { $set: { manufacturer: manufacturerDto.name } },
+        },
+      };
     });
 
-    const productsToUpdate = await this.productModel.find({
-      manufacturer: {
-        $regex: oldManufacturer.name,
-        $options: 'i',
-      },
-    }).limit(50);;
+    if (bulkOperations.length > 0) {
+      await this.productModel.bulkWrite(bulkOperations);
+    }
 
-    await Promise.all(
-      productsToUpdate.map(product =>
-        this.productModel.findByIdAndUpdate(product._id, {
-          $set: { manufacturer: manufacturerDto.name },
-        })
-      )
-    );
-  }
+    skip += limit;
+  } while (productsToUpdate.length === limit);
+}
+
 
   async deleteByName(name: string): Promise<Manufacturer> {
     return await this.manufacturerModel.findOneAndDelete({
