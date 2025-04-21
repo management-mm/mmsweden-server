@@ -87,7 +87,7 @@ export class IndustryService {
         })
         .skip(skip)
         .limit(limit)
-        .lean();
+        .lean(); 
 
       const bulkOperations = productsToUpdate.map(product => {
         const updatedIndustries = product.industries.map(ind =>
