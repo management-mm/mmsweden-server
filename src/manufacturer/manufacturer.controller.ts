@@ -26,14 +26,14 @@ export class ManufacturerController {
     return this.manufacturerService.findAll(query);
   }
 
-  // @Put(':id')
-  // @UseGuards(AuthGuard())
-  // async updateManufacturer(
-  //   @Param('id')
-  //   id: string,
-  //   @Body()
-  //   manufacturer: UpdateManufacturerDto
-  // ): Promise<void> {
-  //   return this.manufacturerService.updateById(id, manufacturer);
-  // }
+  @Put(':id')
+  @UseGuards(AuthGuard())
+  async updateManufacturer(
+    @Param('id')
+    id: string,
+    @Body()
+    manufacturer: UpdateManufacturerDto
+  ): Promise<void> {
+    return this.manufacturerService.updateById(id, manufacturer);
+  }
 }

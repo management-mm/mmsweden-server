@@ -58,58 +58,58 @@ export class IndustryService {
     );
   }
 
-  // async updateById(id: string, industry: UpdateIndustryDto): Promise<void> {
-  //   const existingIndustry = await this.industryModel.findById(id);
+  async updateById(id: string, industry: UpdateIndustryDto): Promise<void> {
+    const existingIndustry = await this.industryModel.findById(id);
 
-  //   if (!existingIndustry) return;
+    if (!existingIndustry) return;
 
-  //   const industryName = existingIndustry.name;
+    const industryName = existingIndustry.name;
 
-  //   await this.industryModel.findByIdAndUpdate(id, {
-  //     $set: { name: industry.name },
-  //   });
+    await this.industryModel.findByIdAndUpdate(id, {
+      $set: { name: industry.name },
+    });
 
-  //   let skip = 0;
-  //   const limit = 50;
-  //   let productsToUpdate;
+    let skip = 0;
+    const limit = 50;
+    let productsToUpdate;
 
-  //   do {
-  //     productsToUpdate = await this.productModel
-  //       .find({
-  //         industries: {
-  //           $elemMatch: {
-  //             [`${LanguageKeys.EN}`]: {
-  //               $regex: industryName.en,
-  //               $options: 'i',
-  //             },
-  //           },
-  //         },
-  //       })
-  //       .skip(skip)
-  //       .limit(limit)
-  //       .lean(); 
+    do {
+      productsToUpdate = await this.productModel
+        .find({
+          industries: {
+            $elemMatch: {
+              [`${LanguageKeys.EN}`]: {
+                $regex: industryName.en,
+                $options: 'i',
+              },
+            },
+          },
+        })
+        .skip(skip)
+        .limit(limit)
+        .lean(); 
 
-  //     const bulkOperations = productsToUpdate.map(product => {
-  //       const updatedIndustries = product.industries.map(ind =>
-  //         ind.en.toLowerCase() === industryName.en.toLowerCase()
-  //           ? industry.name
-  //           : ind
-  //       );
+      const bulkOperations = productsToUpdate.map(product => {
+        const updatedIndustries = product.industries.map(ind =>
+          ind.en.toLowerCase() === industryName.en.toLowerCase()
+            ? industry.name
+            : ind
+        );
 
-  //       return {
-  //         updateOne: {
-  //           filter: { _id: product._id },
-  //           update: { $set: { industries: updatedIndustries } },
-  //         },
-  //       };
-  //     });
+        return {
+          updateOne: {
+            filter: { _id: product._id },
+            update: { $set: { industries: updatedIndustries } },
+          },
+        };
+      });
 
-  //     if (bulkOperations.length > 0) {
-  //       await this.productModel.bulkWrite(bulkOperations);
-  //     }
+      if (bulkOperations.length > 0) {
+        await this.productModel.bulkWrite(bulkOperations);
+      }
 
-  //     skip += limit;
-  //   } while (productsToUpdate.length === limit);
-  // }
+      skip += limit;
+    } while (productsToUpdate.length === limit);
+  }
 }
 

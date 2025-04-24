@@ -26,14 +26,14 @@ export class IndustryController {
     return this.industryService.findAll(query);
   }
 
-  // @Put(':id')
-  // @UseGuards(AuthGuard())
-  // async updateIndustry(
-  //   @Param('id')
-  //   id: string,
-  //   @Body()
-  //   industry: UpdateIndustryDto
-  // ): Promise<void> {
-  //   return this.industryService.updateById(id, industry);
-  // }
+  @Put(':id')
+  @UseGuards(AuthGuard())
+  async updateIndustry(
+    @Param('id')
+    id: string,
+    @Body()
+    industry: UpdateIndustryDto
+  ): Promise<void> {
+    return this.industryService.updateById(id, industry);
+  }
 }
