@@ -33,7 +33,7 @@ export class CategoryController {
     id: string,
     @Body()
     category: UpdateCategoryDto
-  ): Promise<void> {
+  ): Promise<Category> {
     return this.categoryService.updateById(id, category);
   }
 }

@@ -1,6 +1,7 @@
-import { forwardRef, Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AuthModule } from 'src/auth/auth.module';
+import { ProductModule } from 'src/product/product.module';
 import {
   Manufacturer,
   ManufacturerSchema,
@@ -8,12 +9,13 @@ import {
 
 import { ManufacturerController } from './manufacturer.controller';
 import { ManufacturerService } from './manufacturer.service';
-import { ProductModule } from 'src/product/product.module';
 
 @Module({
   imports: [
     AuthModule,
-    MongooseModule.forFeature([{ name: Manufacturer.name, schema: ManufacturerSchema }]),
+    MongooseModule.forFeature([
+      { name: Manufacturer.name, schema: ManufacturerSchema },
+    ]),
     forwardRef(() => ProductModule),
   ],
   controllers: [ManufacturerController],

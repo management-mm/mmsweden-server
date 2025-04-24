@@ -33,7 +33,7 @@ export class IndustryController {
     id: string,
     @Body()
     industry: UpdateIndustryDto
-  ): Promise<void> {
+  ): Promise<Industry> {
     return this.industryService.updateById(id, industry);
   }
 }

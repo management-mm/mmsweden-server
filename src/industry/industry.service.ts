@@ -17,18 +17,18 @@ export class IndustryService {
     @InjectModel(Product.name)
     private productModel: Model<Product>,
     private readonly translationService: TranslationService
-  ) { }
+  ) {}
 
   async findAll(query: Query): Promise<Industry[]> {
     const lang: LanguageKeys = query.lang as LanguageKeys;
     const keywordCondition =
       query.keyword && query.lang
         ? {
-          [`name.${lang}`]: {
-            $regex: query.keyword,
-            $options: 'i',
-          },
-        }
+            [`name.${lang}`]: {
+              $regex: query.keyword,
+              $options: 'i',
+            },
+          }
         : {};
     return this.industryModel.find(keywordCondition).exec();
   }
@@ -58,16 +58,20 @@ export class IndustryService {
     );
   }
 
-  async updateById(id: string, industry: UpdateIndustryDto): Promise<void> {
+  async updateById(id: string, industry: UpdateIndustryDto): Promise<Industry> {
     const existingIndustry = await this.industryModel.findById(id);
 
     if (!existingIndustry) return;
 
     const industryName = existingIndustry.name;
 
-    await this.industryModel.findByIdAndUpdate(id, {
-      $set: { name: industry.name },
-    });
+    const updatedIndustry = await this.industryModel.findByIdAndUpdate(
+      id,
+      {
+        $set: { name: industry.name },
+      },
+      { new: true }
+    );
 
     let skip = 0;
     const limit = 50;
@@ -87,7 +91,7 @@ export class IndustryService {
         })
         .skip(skip)
         .limit(limit)
-        .lean(); 
+        .lean();
 
       const bulkOperations = productsToUpdate.map(product => {
         const updatedIndustries = product.industries.map(ind =>
@@ -110,6 +114,7 @@ export class IndustryService {
 
       skip += limit;
     } while (productsToUpdate.length === limit);
+
+    return updatedIndustry;
   }
 }
-
