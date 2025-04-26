@@ -1,76 +1,112 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
-</p>
+# 📡 Meat Machines – Backend (NestJS + MongoDB)
 
-[circleci-image]:
-  https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+## 📦 Project Description
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+This is the backend server for the Meat Machines web platform. It provides
+secure APIs for managing industrial equipment listings, handling media uploads,
+sending emails, scheduling tasks, and enabling multilingual support.
 
-## Description
+The backend powers both the public website and the internal admin panel.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## ⚙️ Technologies Used
 
-## Installation
+- NestJS — server-side framework
 
-```bash
-$ npm install
-```
+- MongoDB — database (via Mongoose)
 
-## Running the app
+- JWT Authentication — secure login and access
+
+- Multer — file uploads
+
+- Cloudinary — cloud storage for product images and videos
+
+- SendGrid — sending emails (contact forms, inquiries)
+
+- node-cron — scheduled tasks (e.g., auto-removal of sold products)
+
+- AI Integration — automatic product translation
+
+## 🚀 Quick Start
+
+### 📡 Backend
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+cd server
+npm install
+npm run start:dev
 ```
 
-## Test
+### 💻 Frontend
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+cd client
+npm install
+npm run dev
 ```
 
-## Support
+## 🔧 Key Features
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors
-and support by the amazing backers. If you'd like to join them, please
-[read more here](https://docs.nestjs.com/support).
+- Authentication & Authorization (JWT-based)
 
-## Stay in touch
+- Products Management:
 
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+  - Create, Edit, Delete products
 
-## License
+  - Upload and store media on Cloudinary
 
-Nest is [MIT licensed](LICENSE).
+  - Mark products as Sold (with auto-removal after a set period using node-cron)
+
+- Categories, Manufacturers, and Industries Management
+
+- Public API for product listings and filtering
+
+- Contact and Inquiry Forms:
+
+  - Users can send messages via forms
+
+  - Emails are sent securely using SendGrid
+
+- Multilingual Support:
+
+  - Automatic translation of product content via integrated AI
+
+## 🕑 Scheduled Tasks (node-cron)
+
+- Products marked as Sold are automatically removed after a specific time.
+
+## 📬 Email Sending (SendGrid)
+
+- Emails are sent for:
+
+  - Contacting the company
+
+  - Price requests
+
+  - Product submission offers
+
+- Email sending is handled with @sendgrid/mail.
+
+## ☁️ Media Uploads (Cloudinary)
+
+- Product images and videos are uploaded to Cloudinary.
+
+- Uploads happen securely through backend routes using the Cloudinary SDK.
+
+## 📝 Notes
+
+- This server must be deployed with secure environment variables.
+
+- All critical routes are protected by authentication guards.
+
+- Can be easily scaled for additional services like payment integration or
+  inventory synchronization.
+
+## 📬 Contact
+
+Development and support: **Marharyta Katsan**
+
+**Emails:**
+
+- 3margo10@gmail.com
+- marharyta.katsan@gmail.com
+- info@mmsweden.se
