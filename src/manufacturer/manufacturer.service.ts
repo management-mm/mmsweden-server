@@ -46,17 +46,17 @@ export class ManufacturerService {
   async updateById(
     id: string,
     manufacturerDto: UpdateManufacturerDto
-  ): Promise<Manufacturer> {
+  ): Promise<Manufacturer | null> {
     const oldManufacturer = await this.manufacturerModel.findById(id);
-    if (!oldManufacturer) return;
+    if (!oldManufacturer) return null;
 
     const updatedManufacturer = await this.manufacturerModel.findByIdAndUpdate(
       id,
-      {
-        $set: { name: manufacturerDto.name },
-      },
+      { $set: { name: manufacturerDto.name } },
       { new: true }
     );
+
+    if (!updatedManufacturer) return null;
 
     let skip = 0;
     const limit = 50;
@@ -65,20 +65,18 @@ export class ManufacturerService {
     do {
       productsToUpdate = await this.productModel
         .find({
-          manufacturer: { $regex: oldManufacturer.name, $options: 'i' },
+          manufacturer: oldManufacturer.name,
         })
         .skip(skip)
         .limit(limit)
         .lean();
 
-      const bulkOperations = productsToUpdate.map(product => {
-        return {
-          updateOne: {
-            filter: { _id: product._id },
-            update: { $set: { manufacturer: manufacturerDto.name } },
-          },
-        };
-      });
+      const bulkOperations = productsToUpdate.map(product => ({
+        updateOne: {
+          filter: { _id: product._id },
+          update: { $set: { manufacturer: manufacturerDto.name } },
+        },
+      }));
 
       if (bulkOperations.length > 0) {
         await this.productModel.bulkWrite(bulkOperations);
@@ -86,6 +84,7 @@ export class ManufacturerService {
 
       skip += limit;
     } while (productsToUpdate.length === limit);
+
     return updatedManufacturer;
   }
 

@@ -33,7 +33,7 @@ export class ManufacturerController {
     id: string,
     @Body()
     manufacturer: UpdateManufacturerDto
-  ): Promise<Manufacturer> {
+  ): Promise<Manufacturer | null> {
     return this.manufacturerService.updateById(id, manufacturer);
   }
 }
