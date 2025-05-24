@@ -74,10 +74,7 @@ export class ProductService {
     const categoryCondition = query.category
       ? {
           $or: categories.map(categoryItem => ({
-            [`category.${LanguageKeys.EN}`]: {
-              $regex: categoryItem,
-              $options: 'i',
-            },
+            [`category.${LanguageKeys.EN}`]: categoryItem
           })),
         }
       : {};
