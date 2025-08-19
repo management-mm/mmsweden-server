@@ -27,7 +27,6 @@ export class MailerController {
     @Body() sellToUsRequest: SellToUsRequestDto,
     @UploadedFiles() files: Express.Multer.File[]
   ) {
-    console.log(files);
     const photos: string[] = [];
 
     for (const file of files) {
@@ -37,10 +36,12 @@ export class MailerController {
       );
       photos.push(uploadedPhoto.secure_url);
     }
-    console.log(photos);
 
     const dto: SendEmailDto = {
-      recipients: [{ name: 'Artem', address: 'artem@mmsweden.se' }],
+      recipients: [
+        { name: 'Artem', address: 'artem@mmsweden.se' },
+        { name: 'Hampus', address: 'hampus@mmsweden.se' },
+      ],
       subject: 'Sell to Us Request',
       templateData: {
         ...sellToUsRequest,
@@ -68,13 +69,14 @@ export class MailerController {
   @Post('contact-us')
   async contactUs(@Body() contactUsRequest: ContactUsRequestDto) {
     const dto: SendEmailDto = {
-      recipients: [{ name: 'Artem', address: 'artem@mmsweden.se' }],
+      recipients: [
+        { name: 'Artem', address: 'artem@mmsweden.se' },
+        { name: 'Hampus', address: 'hampus@mmsweden.se' },
+      ],
       subject: 'Contact Us Request',
       templateData: contactUsRequest,
       templateName: 'contact-us',
     };
-
-    console.log(dto.templateData);
 
     try {
       const result = await this.mailerService.sendMail(dto);
@@ -96,7 +98,10 @@ export class MailerController {
   @Post('request-quote')
   async requestQuote(@Body() requestQuoteRequest: RequestQuoteDto) {
     const dto: SendEmailDto = {
-      recipients: [{ name: 'Artem', address: 'artem@mmsweden.se' }],
+      recipients: [
+        { name: 'Artem', address: 'artem@mmsweden.se' },
+        { name: 'Hampus', address: 'hampus@mmsweden.se' },
+      ],
       subject: 'Request Price Quote',
       templateData: requestQuoteRequest,
       templateName: 'request-quote',
