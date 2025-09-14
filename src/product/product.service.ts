@@ -31,6 +31,40 @@ export class ProductService {
     private readonly cloudinaryService: CloudinaryService
   ) {}
 
+  private async deleteProductFolder(product: Product): Promise<void> {
+    const { category, idNumber } = product;
+    const categoryFolder = category.en.replace(/ /g, '-').toLowerCase();
+
+    await this.cloudinaryService.deleteFolder(categoryFolder, idNumber);
+  }
+
+  private async handleProductDependencies(product: Product): Promise<void> {
+    const otherProductsWithSameCategory = await this.productModel.findOne({
+      [`category.${LanguageKeys.EN}`]: {
+        $regex: product.category.en,
+        $options: 'i',
+      },
+    });
+
+    let otherProductsWithSameManufacturer: Product | null = null;
+    if (product.manufacturer) {
+      otherProductsWithSameManufacturer = await this.productModel.findOne({
+        ['manufacturer']: {
+          $regex: product.manufacturer,
+          $options: 'i',
+        },
+      });
+    }
+
+    if (!otherProductsWithSameCategory) {
+      await this.categoryService.deleteByName(product.category);
+    }
+
+    if (!otherProductsWithSameManufacturer && product.manufacturer) {
+      await this.manufacturerService.deleteByName(product.manufacturer);
+    }
+  }
+
   async findAll(query: Query): Promise<{ products: Product[]; total: number }> {
     const perPage = Number(query.perPage) || 16;
     const currentPage = Number(query.page) || 1;
@@ -74,7 +108,7 @@ export class ProductService {
     const categoryCondition = query.category
       ? {
           $or: categories.map(categoryItem => ({
-            [`category.${LanguageKeys.EN}`]: categoryItem
+            [`category.${LanguageKeys.EN}`]: categoryItem,
           })),
         }
       : {};
@@ -340,7 +374,14 @@ export class ProductService {
 
     now.setHours(0, 0, 0, 0);
 
-    console.log('today', now);
+    const productsToDelete = await this.productModel.find({
+      deletionDate: { $lte: now },
+    });
+
+    productsToDelete.forEach(async product => {
+      await this.handleProductDependencies(product);
+      await this.deleteProductFolder(product);
+    });
 
     await this.productModel.deleteMany({
       deletionDate: { $lte: now },
@@ -455,29 +496,9 @@ export class ProductService {
 
   async deleteById(id: string): Promise<Product | null> {
     const product = await this.productModel.findByIdAndDelete(id);
-    let otherProductsWithSameManufacturer;
+    await this.handleProductDependencies(product);
 
-    const otherProductsWithSameCategory = await this.productModel.findOne({
-      [`category.${LanguageKeys.EN}`]: {
-        $regex: product.category.en,
-        $options: 'i',
-      },
-    });
-    if (product.manufacturer) {
-      otherProductsWithSameManufacturer = await this.productModel.findOne({
-        ['manufacturer']: {
-          $regex: product.manufacturer,
-          $options: 'i',
-        },
-      });
-    }
-
-    if (otherProductsWithSameCategory) {
-      this.categoryService.deleteByName(product.category);
-    }
-    if (otherProductsWithSameManufacturer) {
-      this.manufacturerService.deleteByName(product.manufacturer);
-    }
+    await this.deleteProductFolder(product);
 
     return product;
   }
