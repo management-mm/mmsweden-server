@@ -4,6 +4,7 @@ import {
   Post,
   UploadedFiles,
   UseInterceptors,
+  ValidationPipe,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
@@ -18,35 +19,39 @@ import { MailerService } from './mailer.service';
 export class MailerController {
   constructor(
     private readonly mailerService: MailerService,
-    private readonly cloudinaryService: CloudinaryService
+    private readonly cloudinaryService: CloudinaryService,
   ) {}
+
+  private getRecipients() {
+    return [
+      { name: 'Artem', address: process.env.RECIPIENT_ARTEM || 'artem@mmsweden.se' },
+      { name: 'Hampus', address: process.env.RECIPIENT_HAMPUS || 'hampus@mmsweden.se' },
+    ];
+  }
 
   @Post('sell-to-us')
   @UseInterceptors(FilesInterceptor('photos'))
   async sellToUs(
-    @Body() sellToUsRequest: SellToUsRequestDto,
-    @UploadedFiles() files: Express.Multer.File[]
+    @Body(new ValidationPipe({ whitelist: true })) sellToUsRequest: SellToUsRequestDto,
+    @UploadedFiles() files: Express.Multer.File[],
   ) {
-    const photos: string[] = [];
+    const folderName = `sell-to-us-products/${sellToUsRequest.name.replace(/ /g, '-').toLowerCase()}`;
 
-    for (const file of files) {
-      const uploadedPhoto = await this.cloudinaryService.uploadImage(
-        file,
-        `sell-to-us-products/${sellToUsRequest.name}`
-      );
-      photos.push(uploadedPhoto.secure_url);
+    const uploadResults = await Promise.allSettled(
+      files.map(file => this.cloudinaryService.uploadImage(file, folderName)),
+    );
+
+    const photos: string[] = [];
+    for (const result of uploadResults) {
+      if (result.status === 'fulfilled' && 'secure_url' in result.value) {
+        photos.push(result.value.secure_url);
+      }
     }
 
     const dto: SendEmailDto = {
-      recipients: [
-        { name: 'Artem', address: 'artem@mmsweden.se' },
-        { name: 'Hampus', address: 'hampus@mmsweden.se' },
-      ],
+      recipients: this.getRecipients(),
       subject: 'Sell to Us Request',
-      templateData: {
-        ...sellToUsRequest,
-        photos,
-      },
+      templateData: { ...sellToUsRequest, photos },
       templateName: 'sell-to-us',
     };
 
@@ -54,25 +59,28 @@ export class MailerController {
       const result = await this.mailerService.sendMail(dto);
       return {
         success: true,
-        message:
-          'Your request has been successfully sent. It is going to be processed',
+        message: {
+          en: 'Your request has been successfully sent. It is going to be processed.',
+        },
         result,
       };
     } catch (error) {
       return {
         success: false,
-        message: 'Failed to send Sell to us message',
+        message: {
+          en: 'Failed to send Sell to Us message.',
+        },
         error: error.message,
       };
     }
   }
+
   @Post('contact-us')
-  async contactUs(@Body() contactUsRequest: ContactUsRequestDto) {
+  async contactUs(
+    @Body(new ValidationPipe({ whitelist: true })) contactUsRequest: ContactUsRequestDto,
+  ) {
     const dto: SendEmailDto = {
-      recipients: [
-        { name: 'Artem', address: 'artem@mmsweden.se' },
-        { name: 'Hampus', address: 'hampus@mmsweden.se' },
-      ],
+      recipients: this.getRecipients(),
       subject: 'Contact Us Request',
       templateData: contactUsRequest,
       templateName: 'contact-us',
@@ -82,26 +90,28 @@ export class MailerController {
       const result = await this.mailerService.sendMail(dto);
       return {
         success: true,
-        message:
-          'Your request has been successfully sent. It is going to be processed',
+        message: {
+          en: 'Your request has been successfully sent. It is going to be processed.',
+        },
         result,
       };
     } catch (error) {
       return {
         success: false,
-        message: 'Failed to send Sell to us message',
+        message: {
+          en: 'Failed to send Contact Us message.',
+        },
         error: error.message,
       };
     }
   }
 
   @Post('request-quote')
-  async requestQuote(@Body() requestQuoteRequest: RequestQuoteDto) {
+  async requestQuote(
+    @Body(new ValidationPipe({ whitelist: true })) requestQuoteRequest: RequestQuoteDto,
+  ) {
     const dto: SendEmailDto = {
-      recipients: [
-        { name: 'Artem', address: 'artem@mmsweden.se' },
-        { name: 'Hampus', address: 'hampus@mmsweden.se' },
-      ],
+      recipients: this.getRecipients(),
       subject: 'Request Price Quote',
       templateData: requestQuoteRequest,
       templateName: 'request-quote',
@@ -125,7 +135,9 @@ export class MailerController {
     } catch (error) {
       return {
         success: false,
-        message: 'Failed to send Request a price quote message',
+        message: {
+          en: 'Failed to send Request a price quote message.',
+        },
         error: error.message,
       };
     }
