@@ -41,11 +41,11 @@ export class ProductService {
   private sanitizeFolderName(str: string): string {
     return str
       .toLowerCase()
-      .trim()
-      .replace(/[?&#\/%<>\\]/g, '')
-      .replace(/\s+/g, '-')
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
       .replace(/-+/g, '-')
-      .replace(/^-+|-+$/g, '');
+      .replace(/^-|-$/g, '');
   }
 
   private async handleProductDependencies(product: Product): Promise<void> {
