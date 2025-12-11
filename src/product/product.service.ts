@@ -357,7 +357,10 @@ export class ProductService {
     }
 
     const { category, idNumber } = product;
-    const categoryFolder = category.en.replace(/ /g, '-').toLowerCase();
+    const categoryFolder = category.en
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[?&#\/%<>\\]/g, '');
     const folderPath = `products/${categoryFolder}/${idNumber}`;
 
     const uploadPromises = files.map(file =>

@@ -19,26 +19,33 @@ import { MailerService } from './mailer.service';
 export class MailerController {
   constructor(
     private readonly mailerService: MailerService,
-    private readonly cloudinaryService: CloudinaryService,
+    private readonly cloudinaryService: CloudinaryService
   ) {}
 
   private getRecipients() {
     return [
-      { name: 'Artem', address: process.env.RECIPIENT_ARTEM || 'artem@mmsweden.se' },
-      { name: 'Hampus', address: process.env.RECIPIENT_HAMPUS || 'hampus@mmsweden.se' },
+      {
+        name: 'Artem',
+        address: process.env.RECIPIENT_ARTEM || 'artem@mmsweden.se',
+      },
+      {
+        name: 'Hampus',
+        address: process.env.RECIPIENT_HAMPUS || 'hampus@mmsweden.se',
+      },
     ];
   }
 
   @Post('sell-to-us')
   @UseInterceptors(FilesInterceptor('photos'))
   async sellToUs(
-    @Body(new ValidationPipe({ whitelist: true })) sellToUsRequest: SellToUsRequestDto,
-    @UploadedFiles() files: Express.Multer.File[],
+    @Body(new ValidationPipe({ whitelist: true }))
+    sellToUsRequest: SellToUsRequestDto,
+    @UploadedFiles() files: Express.Multer.File[]
   ) {
     const folderName = `sell-to-us-products/${sellToUsRequest.name.replace(/ /g, '-').toLowerCase()}`;
 
     const uploadResults = await Promise.allSettled(
-      files.map(file => this.cloudinaryService.uploadImage(file, folderName)),
+      files.map(file => this.cloudinaryService.uploadImage(file, folderName))
     );
 
     const photos: string[] = [];
@@ -77,7 +84,8 @@ export class MailerController {
 
   @Post('contact-us')
   async contactUs(
-    @Body(new ValidationPipe({ whitelist: true })) contactUsRequest: ContactUsRequestDto,
+    @Body(new ValidationPipe({ whitelist: true }))
+    contactUsRequest: ContactUsRequestDto
   ) {
     const dto: SendEmailDto = {
       recipients: this.getRecipients(),
@@ -108,7 +116,8 @@ export class MailerController {
 
   @Post('request-quote')
   async requestQuote(
-    @Body(new ValidationPipe({ whitelist: true })) requestQuoteRequest: RequestQuoteDto,
+    @Body(new ValidationPipe({ whitelist: true }))
+    requestQuoteRequest: RequestQuoteDto
   ) {
     const dto: SendEmailDto = {
       recipients: this.getRecipients(),
