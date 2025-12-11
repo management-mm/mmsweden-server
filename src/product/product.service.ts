@@ -38,6 +38,16 @@ export class ProductService {
     await this.cloudinaryService.deleteFolder(categoryFolder, idNumber);
   }
 
+  private sanitizeFolderName(str: string): string {
+    return str
+      .toLowerCase()
+      .trim()
+      .replace(/[?&#\/%<>\\]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  }
+
   private async handleProductDependencies(product: Product): Promise<void> {
     const otherProductsWithSameCategory = await this.productModel.findOne({
       [`category.${LanguageKeys.EN}`]: {
@@ -357,10 +367,7 @@ export class ProductService {
     }
 
     const { category, idNumber } = product;
-    const categoryFolder = category.en
-      .toLowerCase()
-      .replace(/\s+/g, '-')
-      .replace(/[?&#\/%<>\\]/g, '');
+    const categoryFolder = this.sanitizeFolderName(category.en);
     const folderPath = `products/${categoryFolder}/${idNumber}`;
 
     const uploadPromises = files.map(file =>
