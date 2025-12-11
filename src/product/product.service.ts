@@ -312,7 +312,7 @@ export class ProductService {
       );
     }
 
-    const categoryFolder = category.name.en.replace(/ /g, '-').toLowerCase();
+    const categoryFolder = this.sanitizeFolderName(category.name.en); 
 
     const folderPath = `products/${categoryFolder}/${product.idNumber}`;
 
