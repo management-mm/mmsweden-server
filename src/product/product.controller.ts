@@ -14,15 +14,20 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { Query as ExpressQuery } from 'express-serve-static-core';
+import { OpenAIService } from 'src/openai/openai.service';
 import { Product } from 'src/schemas/product.schema';
 
 import { CreateProductDto } from './dto/create-product.dto';
+import { GenerateDescriptionPreviewDto } from './dto/generate-desc-prev-dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductService } from './product.service';
 
 @Controller('products')
 export class ProductController {
-  constructor(private productService: ProductService) {}
+  constructor(
+    private productService: ProductService,
+    private readonly openAIService: OpenAIService
+  ) {}
 
   @Get()
   async getAllProducts(
@@ -47,18 +52,6 @@ export class ProductController {
   ): Promise<Product[]> {
     return this.productService.findRecommendedProductsById(id);
   }
-
-  // @Put(':id/photos')
-  // @UseInterceptors(FilesInterceptor('photos'))
-  // @UseGuards(AuthGuard())
-  // async updatePhotos(
-  //   @Param('id')
-  //   id: string,
-  //   @UploadedFiles()
-  //   files: Express.Multer.File[]
-  // ): Promise<string[]> {
-  //   return this.productService.updatePhotos(id, files);
-  // }
 
   @Post()
   @UseGuards(AuthGuard())
@@ -88,6 +81,14 @@ export class ProductController {
     files: Express.Multer.File[]
   ): Promise<Product> {
     return this.productService.updateById(id, query, product, files);
+  }
+
+  @Post('description/ai')
+  @UseGuards(AuthGuard())
+  async regenerateDescriptionWithAI(
+    @Body() dto: GenerateDescriptionPreviewDto
+  ) {
+    return this.openAIService.generateProductDescription(dto);
   }
 
   @Delete(':id')

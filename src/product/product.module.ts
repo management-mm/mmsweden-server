@@ -5,6 +5,7 @@ import { CategoryModule } from 'src/category/category.module';
 import { CloudinaryModule } from 'src/cloudinary/cloudinary.module';
 import { IndustryModule } from 'src/industry/industry.module';
 import { ManufacturerModule } from 'src/manufacturer/manufacturer.module';
+import { OpenAIModule } from 'src/openai/openai.module';
 import { ProductSchema } from 'src/schemas/product.schema';
 import { Product } from 'src/schemas/product.schema';
 import { TranslationModule } from 'src/translation/translation.module';
@@ -20,6 +21,7 @@ import { ProductService } from './product.service';
     forwardRef(() => ManufacturerModule),
     TranslationModule,
     CloudinaryModule,
+    OpenAIModule,
     MongooseModule.forFeature([{ name: Product.name, schema: ProductSchema }]),
   ],
   controllers: [ProductController],

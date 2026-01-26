@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import OpenAI from 'openai';
+import { GenerateDescriptionPreviewDto } from 'src/product/dto/generate-desc-prev-dto';
 
 @Injectable()
 export class OpenAIService {
@@ -65,6 +66,46 @@ Use the most appropriate translation based on the target language. If unsure, pr
     } catch (error) {
       console.error('Error translating text:', error);
       throw new Error('Translation failed');
+    }
+  }
+
+  async generateProductDescription(
+    dto: GenerateDescriptionPreviewDto
+  ): Promise<string> {
+    try {
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-4-turbo',
+        temperature: 0.2,
+        messages: [
+          {
+            role: 'system',
+            content: `You are an assistant that edits used food-processing and packaging equipment descriptions for a sales website.
+
+Task:
+- Improve English: fix spelling, grammar, punctuation, and wording for clarity.
+- Keep the description concise and sales-ready (no fluff, no marketing hype).
+- Preserve meaning and ALL factual information. Do NOT remove, contradict, or invent facts.
+- Do NOT change numbers, model names, capacities, dimensions, dates, brands, countries, or technical specs unless they are clearly typos.
+- If key commercial/technical details are missing, add them only as short “Missing info:” placeholders (do not guess).
+
+Key details to check (placeholders if absent):
+Manufacturer, model, year, condition, capacity/output, product type/application, key specs, dimensions, power/voltage, included accessories, materials/contact parts, documentation/CE, location, availability, price (if applicable).
+
+Output:
+Return only the final edited description in plain text.
+`,
+          },
+          {
+            role: 'user',
+            content: dto.description,
+          },
+        ],
+      });
+
+      return response.choices[0]?.message?.content || '';
+    } catch (error) {
+      console.error('Error :', error);
+      throw new Error('Failed');
     }
   }
 }
