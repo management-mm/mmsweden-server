@@ -28,10 +28,10 @@ export class MailerController {
         name: 'Artem',
         address: process.env.RECIPIENT_ARTEM || 'artem@mmsweden.se',
       },
-      {
-        name: 'Hampus',
-        address: process.env.RECIPIENT_HAMPUS || 'hampus@mmsweden.se',
-      },
+      // {
+      //   name: 'Hampus',
+      //   address: process.env.RECIPIENT_HAMPUS || 'hampus@mmsweden.se',
+      // },
     ];
   }
 
