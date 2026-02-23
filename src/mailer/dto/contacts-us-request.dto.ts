@@ -13,7 +13,7 @@ export class ContactUsRequestDto {
   @IsString()
   phone: string;
 
-  @IsNotEmpty()
+  // @IsNotEmpty()
   @IsString()
   countryPhone: string;
 

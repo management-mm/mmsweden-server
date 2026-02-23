@@ -4,7 +4,6 @@ import {
   IsArray,
   IsEmail,
   IsNotEmpty,
-  IsPhoneNumber,
   IsString,
   ValidateNested,
 } from 'class-validator';
@@ -36,7 +35,6 @@ export class RequestQuoteDto {
   @IsString()
   phone: string;
 
-  @IsNotEmpty()
   @IsString()
   countryPhone: string;
 
@@ -44,9 +42,11 @@ export class RequestQuoteDto {
   @IsString()
   country: string;
 
-  @IsNotEmpty()
   @IsString()
   company: string;
+
+  @IsString()
+  message:string;
 
   @IsArray()
   @ValidateNested({ each: true })
