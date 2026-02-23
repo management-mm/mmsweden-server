@@ -13,7 +13,7 @@ export class SellToUsRequestDto {
   @IsString()
   phone: string;
 
-  @IsNotEmpty()
+  // @IsNotEmpty()
   @IsString()
   countryPhone: string;
 
