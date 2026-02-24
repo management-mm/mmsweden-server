@@ -1,4 +1,9 @@
-import { IsArray, IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class CreateProductDto {
   @IsNotEmpty()
@@ -19,23 +24,17 @@ export class CreateProductDto {
 
   readonly photos: File[];
 
- 
-
   @IsNotEmpty()
   @IsString()
   readonly category: string;
 
   @IsOptional()
-@IsString()
-manufacturer?: string;
+  @IsString()
+  readonly manufacturer?: string;
 
-@IsOptional()
-@IsString()
-video?: string;
-
-@IsOptional()
-@IsArray()
-photoQueue?: string[];
+  @IsOptional()
+  @IsString()
+  readonly video?: string;
 
   @IsNotEmpty()
   @IsString()

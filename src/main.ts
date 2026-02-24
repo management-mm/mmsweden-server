@@ -17,12 +17,12 @@ async function bootstrap() {
 
   app.enableCors(corsOptions);
   app.useGlobalPipes(
-  new ValidationPipe({
-    whitelist: true,
-    transform: true,
-    forbidNonWhitelisted: false,
-  })
-);
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      forbidNonWhitelisted: false,
+    })
+  );
 
   await app.listen(3000);
 
