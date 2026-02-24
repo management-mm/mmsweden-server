@@ -51,7 +51,7 @@ export class RequestQuoteDto {
 
   @IsString()
   @IsOptional()
-  message:string;
+  message: string;
 
   @IsArray()
   @ValidateNested({ each: true })
