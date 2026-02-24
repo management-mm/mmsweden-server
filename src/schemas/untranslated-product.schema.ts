@@ -19,13 +19,13 @@ export class UntranslatedProduct {
   @Prop({ type: [File], required: true })
   photos: File[];
 
-  @Prop({ type: String, required: false })
+  @Prop({ type: String })
   video: string;
 
   @Prop({ type: String, required: true })
   category: string;
 
-  @Prop({ type: String, required: false })
+  @Prop({ type: String })
   manufacturer: string;
 
   @Prop({ type: [String], required: true })
