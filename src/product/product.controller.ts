@@ -37,21 +37,10 @@ export class ProductController {
     return this.productService.findAll(query);
   }
 
-  @Get(':id')
-  async getProduct(
-    @Param('id')
-    id: string
-  ): Promise<Product> {
-    return this.productService.findById(id);
-  }
-
-  @Get(':slug')
-  async getProductBySlug(
-    @Param('slug')
-    slug: string
-  ): Promise<Product> {
-    return this.productService.findBySlug(slug);
-  }
+ @Get(':slug')
+getProduct(@Param('slug') slug: string) {
+  return this.productService.findBySlug(slug);
+}
 
   @Get(':id/recommended-products')
   async getRecommendedProducts(
