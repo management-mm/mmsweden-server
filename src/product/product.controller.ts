@@ -37,8 +37,8 @@ export class ProductController {
     return this.productService.findAll(query);
   }
 
- @Get(':slug')
-getProduct(@Param('slug') slug: string) {
+@Get('by-slug/:slug')
+getBySlug(@Param('slug') slug: string) {
   return this.productService.findBySlug(slug);
 }
 
