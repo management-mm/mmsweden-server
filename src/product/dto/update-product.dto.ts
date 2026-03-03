@@ -1,7 +1,10 @@
-import { MultiLanguageString } from 'src/common/types/language.types';
+import { IsOptional, IsString } from 'class-validator';
 
 export class UpdateProductDto {
   readonly name: string;
+  @IsOptional()
+  @IsString()
+  readonly slug?: string;
   readonly idNumber: string;
   readonly description: string;
   readonly dimensions: string;

@@ -45,6 +45,14 @@ export class ProductController {
     return this.productService.findById(id);
   }
 
+  @Get(':slug')
+  async getProductBySlug(
+    @Param('slug')
+    slug: string
+  ): Promise<Product> {
+    return this.productService.findBySlug(slug);
+  }
+
   @Get(':id/recommended-products')
   async getRecommendedProducts(
     @Param('id')

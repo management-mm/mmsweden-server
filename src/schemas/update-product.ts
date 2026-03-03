@@ -4,6 +4,9 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
   timestamps: true,
 })
 export class UpdateProduct {
+  @Prop({ unique: true, index: true })
+  slug?: string;
+
   @Prop({ type: String })
   name: string;
 

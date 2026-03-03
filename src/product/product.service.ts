@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Query } from 'express-serve-static-core';
 import { Model } from 'mongoose';
 import type { SortOrder } from 'mongoose';
+import slugify from 'slugify';
 import { CategoryService } from 'src/category/category.service';
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
 import {
@@ -324,9 +325,17 @@ export class ProductService {
 
       photos.push(uploadedPhoto.secure_url);
     }
+    let slug = slugify(product.name, { lower: true, strict: true });
+
+    const existing = await this.productModel.findOne({ slug });
+
+    if (existing) {
+      slug = `${slug}-${Date.now()}`;
+    }
 
     const createdProduct = new this.productModel({
       ...product,
+      slug,
       name: nameTranslations || product.name,
       description: descriptionTranslations,
       category: category.name,
@@ -345,6 +354,16 @@ export class ProductService {
 
   async findById(id: string): Promise<Product> {
     const product = await this.productModel.findById(id);
+
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+
+    return product;
+  }
+
+  async findBySlug(slug: string): Promise<Product> {
+    const product = await this.productModel.findOne({ slug });
 
     if (!product) {
       throw new NotFoundException('Product not found');
@@ -480,10 +499,40 @@ export class ProductService {
     if (deletionDate) {
       deletionDate.setHours(0, 0, 0, 0);
     }
+
+    const existingProduct = await this.productModel.findById(id);
+    if (!existingProduct) {
+      throw new NotFoundException('Product not found');
+    }
+
+    const finalName = nameTranslations || name;
+
+    const nameForSlug =
+      typeof finalName === 'string' ? finalName : finalName?.en;
+
+    let newSlug = existingProduct.slug;
+
+    if (nameForSlug && nameForSlug !== existingProduct.slug) {
+      const baseSlug = slugify(nameForSlug, {
+        lower: true,
+        strict: true,
+      });
+
+      newSlug = baseSlug;
+
+      let counter = 1;
+      while (
+        await this.productModel.findOne({ slug: newSlug, _id: { $ne: id } })
+      ) {
+        newSlug = `${baseSlug}-${counter}`;
+        counter++;
+      }
+    }
     return await this.productModel.findByIdAndUpdate(
       id,
       {
         $set: {
+          slug: newSlug,
           name: nameTranslations || name,
           idNumber: product.idNumber,
           dimensions: product.dimensions,
