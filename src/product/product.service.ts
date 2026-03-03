@@ -352,16 +352,6 @@ export class ProductService {
     return createdProduct.save();
   }
 
-  async findById(id: string): Promise<Product> {
-    const product = await this.productModel.findById(id);
-
-    if (!product) {
-      throw new NotFoundException('Product not found');
-    }
-
-    return product;
-  }
-
   async findBySlug(slug: string): Promise<Product> {
     const product = await this.productModel.findOne({ slug });
 
