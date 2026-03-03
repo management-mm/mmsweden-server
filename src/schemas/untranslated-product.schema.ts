@@ -1,9 +1,12 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import slugify from 'slugify';
 
 @Schema({
   timestamps: true,
 })
 export class UntranslatedProduct {
+  @Prop({ unique: true, index: true })
+  slug?: string;
   @Prop({ type: String, required: true })
   name: string;
 
@@ -36,3 +39,10 @@ export class UntranslatedProduct {
 }
 
 export const ProductSchema = SchemaFactory.createForClass(UntranslatedProduct);
+
+ProductSchema.pre('validate', function (next) {
+  if (!this.slug && this.name) {
+    this.slug = slugify(this.name, { lower: true, strict: true });
+  }
+  next();
+});

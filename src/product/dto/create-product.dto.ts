@@ -1,6 +1,16 @@
-import { IsArray, IsEnum, IsNotEmpty, IsString } from 'class-validator';
+import {
+  IsArray,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class CreateProductDto {
+  @IsOptional()
+  @IsString()
+  readonly slug?: string;
+
   @IsNotEmpty()
   @IsString()
   readonly name: string;

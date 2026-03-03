@@ -5,6 +5,9 @@ import { MultiLanguageString } from 'src/common/types/language.types';
   timestamps: true,
 })
 export class Product {
+  @Prop({ required: true, unique: true })
+  slug: string;
+
   @Prop({ type: Object })
   name: MultiLanguageString;
 
