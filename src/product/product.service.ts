@@ -17,8 +17,9 @@ import { Industry } from 'src/schemas/industry.schema';
 import { Manufacturer } from 'src/schemas/manufacturer.schema';
 import { Product } from 'src/schemas/product.schema';
 import { UntranslatedProduct } from 'src/schemas/untranslated-product.schema';
-import { UpdateProduct } from 'src/schemas/update-product';
 import { TranslationService } from 'src/translation/translation.service';
+
+import { UpdateProductDto } from './dto/update-product.dto';
 
 @Injectable()
 export class ProductService {
@@ -406,141 +407,160 @@ export class ProductService {
       deletionDate: { $lte: now },
     });
   }
-
   async updateById(
     id: string,
     query: Query,
-    product: UpdateProduct,
+    product: UpdateProductDto,
     files: Express.Multer.File[]
   ): Promise<Product> {
-    const shouldTranslateName: boolean = query.shouldTranslateName === 'true';
-    let nameTranslations: MultiLanguageString | undefined;
-    let descriptionTranslations: MultiLanguageString | undefined;
-    const sourceLanguage: 'en' | 'sv' = (query.lang as 'en' | 'sv') || 'en';
+    try {
 
-    const urlsThatWereFiles: string[] = await this.uploadProductPhotos(
-      id,
-      files
-    );
-    const photos = product.photoQueue
-      ? product.photoQueue.split(',').map(photo => photo.trim())
-      : [];
+      const shouldTranslateName: boolean = query.shouldTranslateName === 'true';
+      let nameTranslations: MultiLanguageString | undefined;
+      let descriptionTranslations: MultiLanguageString | undefined;
+      const sourceLanguage: 'en' | 'sv' = (query.lang as 'en' | 'sv') || 'en';
 
-    let j = 0;
-    let name = product.name;
-    let description = product.description;
-    let deletionDate;
+      const tryParseArrayCsv = (value?: string | null): string[] => {
+        if (!value || typeof value !== 'string') return [];
+        return value
+          .split(',')
+          .map(s => s.trim())
+          .filter(Boolean);
+      };
 
-    function tryParseJSON(value: any): any {
-      try {
-        const parsed = JSON.parse(value);
-        return typeof parsed === 'object' && parsed !== null ? parsed : value;
-      } catch (error) {
-        return value;
+      const tryParseJSON = (value: any): any => {
+        if (typeof value !== 'string') return value;
+        const t = value.trim();
+        if (!t.startsWith('{') && !t.startsWith('[')) return value;
+        try {
+          const parsed = JSON.parse(t);
+          return typeof parsed === 'object' && parsed !== null ? parsed : value;
+        } catch {
+          return value;
+        }
+      };
+
+      const existingProduct = await this.productModel.findById(id);
+      if (!existingProduct) throw new NotFoundException('Product not found');
+ 
+      const newUrls: string[] = files?.length
+        ? await this.uploadProductPhotos(id, files)
+        : [];
+
+      const queue = tryParseArrayCsv(product.photoQueue);
+
+      let finalPhotos: string[] = [];
+
+      if (queue.length) {
+        let j = 0; 
+        finalPhotos = queue
+          .map(token => {
+            if (token === 'file') {
+              const u = newUrls[j];
+              j++;
+              return u;
+            }
+            return token;
+          })
+          .filter((u): u is string => !!u);
+      } else {
+        finalPhotos = [...(existingProduct.photos ?? []), ...newUrls];
       }
-    }
+      const industriesArray = tryParseArrayCsv(product.industries);
 
-    for (let i = 0; i < photos.length; i++) {
-      if (photos[i] === 'file' && j < urlsThatWereFiles.length) {
-        photos[i] = urlsThatWereFiles[j];
-        j++;
-      }
-    }
-
-    const industriesArray: string[] = product.industries
-      ? product.industries.split(',').map(industry => industry.trim())
-      : [];
-    const category = await this.categoryService.findOrCreate(
-      product.category,
-      'en'
-    );
-    const manufacturer = await this.manufacturerService.findOrCreate(
-      product.manufacturer
-    );
-    const industries = await this.industryService.findOrCreate(
-      industriesArray,
-      'en'
-    );
-
-    name = tryParseJSON(product.name);
-    if (shouldTranslateName) {
-      nameTranslations = await this.translationService.translateText(
-        product.name,
-        sourceLanguage
+      const category = await this.categoryService.findOrCreate(
+        product.category as string,
+        'en'
       );
-    }
-    description = tryParseJSON(product.description);
 
-    if (typeof description === 'string') {
-      descriptionTranslations = await this.translationService.translateText(
-        product.description,
-        sourceLanguage
-      );
-    }
-
-    if (product.deletionDate === 'null') {
-      deletionDate = null;
-    } else {
-      deletionDate = product.deletionDate
-        ? new Date(product.deletionDate)
+      const manufacturer = product.manufacturer
+        ? await this.manufacturerService.findOrCreate(product.manufacturer)
         : null;
-    }
 
-    if (deletionDate) {
-      deletionDate.setHours(0, 0, 0, 0);
-    }
+      const industries = industriesArray.length
+        ? await this.industryService.findOrCreate(industriesArray, 'en')
+        : [];
+  
+      const name = tryParseJSON(product.name);
+      const description = tryParseJSON(product.description);
 
-    const existingProduct = await this.productModel.findById(id);
-    if (!existingProduct) {
-      throw new NotFoundException('Product not found');
-    }
+      if (shouldTranslateName) {
+        const nameToTranslate =
+          typeof name === 'string'
+            ? name
+            : (name?.[sourceLanguage] ?? name?.en);
 
-    const finalName = nameTranslations || name;
 
-    const nameForSlug =
-      typeof finalName === 'string' ? finalName : finalName?.en;
-
-    let newSlug = existingProduct.slug;
-
-    if (nameForSlug && nameForSlug !== existingProduct.slug) {
-      const baseSlug = slugify(nameForSlug, {
-        lower: true,
-        strict: true,
-      });
-
-      newSlug = baseSlug;
-
-      let counter = 1;
-      while (
-        await this.productModel.findOne({ slug: newSlug, _id: { $ne: id } })
-      ) {
-        newSlug = `${baseSlug}-${counter}`;
-        counter++;
+        if (typeof nameToTranslate === 'string' && nameToTranslate.trim()) {
+          nameTranslations = await this.translationService.translateText(
+            nameToTranslate,
+            sourceLanguage
+          );
+        }
       }
-    }
-    return await this.productModel.findByIdAndUpdate(
-      id,
-      {
-        $set: {
-          slug: newSlug,
-          name: nameTranslations || name,
-          idNumber: product.idNumber,
-          dimensions: product.dimensions,
-          description: descriptionTranslations || description,
-          category: category.name,
-          manufacturer: manufacturer.name,
-          industries: industries.map(industry => industry.name),
-          photos,
-          condition: product.condition,
-          video: product.video,
-          deletionDate,
+
+      if (typeof description === 'string') {
+        descriptionTranslations = await this.translationService.translateText(
+          description,
+          sourceLanguage
+        );
+      }
+
+      const finalName = nameTranslations || name;
+      const finalDescription = descriptionTranslations || description;
+
+      let deletionDate: Date | null = null;
+      if (product.deletionDate === 'null') deletionDate = null;
+      else
+        deletionDate = product.deletionDate
+          ? new Date(product.deletionDate)
+          : null;
+      if (deletionDate) deletionDate.setHours(0, 0, 0, 0);
+   
+      const nameForSlug =
+        typeof finalName === 'string' ? finalName : finalName?.en;
+      let newSlug = existingProduct.slug;
+
+      if (nameForSlug && nameForSlug.trim()) {
+        const baseSlug = slugify(nameForSlug, { lower: true, strict: true });
+        if (baseSlug && baseSlug !== existingProduct.slug) {
+          newSlug = baseSlug;
+          let counter = 1;
+          while (
+            await this.productModel.findOne({ slug: newSlug, _id: { $ne: id } })
+          ) {
+            newSlug = `${baseSlug}-${counter}`;
+            counter++;
+          }
+        }
+      }
+ 
+      const result = await this.productModel.findByIdAndUpdate(
+        id,
+        {
+          $set: {
+            slug: newSlug,
+            name: finalName,
+            idNumber: product.idNumber,
+            dimensions: product.dimensions,
+            description: finalDescription,
+            category: category.name,
+            manufacturer: manufacturer ? manufacturer.name : null,
+            industries: industries.map(ind => ind.name),
+            photos: finalPhotos,
+            condition: product.condition,
+            video: product.video,
+            deletionDate,
+          },
         },
-      },
-      {
-        new: true,
-        runValidators: true,
-      }
-    );
+        { new: true, runValidators: true }
+      );
+
+
+      return result;
+    } catch (error) {
+      throw error;
+    }
   }
 
   async deleteById(id: string): Promise<Product | null> {

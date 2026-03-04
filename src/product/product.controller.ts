@@ -7,6 +7,7 @@ import {
   Post,
   Put,
   Query,
+  Req,
   UploadedFiles,
   UseGuards,
   UseInterceptors,
@@ -37,10 +38,10 @@ export class ProductController {
     return this.productService.findAll(query);
   }
 
-@Get('by-slug/:slug')
-getBySlug(@Param('slug') slug: string) {
-  return this.productService.findBySlug(slug);
-}
+  @Get('by-slug/:slug')
+  getBySlug(@Param('slug') slug: string) {
+    return this.productService.findBySlug(slug);
+  }
 
   @Get(':id/recommended-products')
   async getRecommendedProducts(
@@ -68,15 +69,15 @@ getBySlug(@Param('slug') slug: string) {
   @UseGuards(AuthGuard())
   @UseInterceptors(FilesInterceptor('photos'))
   async updateProduct(
-    @Param('id')
-    id: string,
-    @Query()
-    query: ExpressQuery,
-    @Body()
-    product: UpdateProductDto,
-    @UploadedFiles()
-    files: Express.Multer.File[]
-  ): Promise<Product> {
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Query() query: ExpressQuery,
+    @Body() product: UpdateProductDto,
+    @UploadedFiles() files: Express.Multer.File[]
+  ) {
+    console.log('content-type:', req.headers['content-type']);
+    console.log('body keys:', Object.keys(req.body || {}));
+    console.log('files count:', files?.length);
     return this.productService.updateById(id, query, product, files);
   }
 
