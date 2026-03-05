@@ -48,7 +48,7 @@ export class UpdateProductDto {
 
   @IsOptional()
   @IsString()
-  industries?: string; 
+  industries?: string;
 
   @IsString()
   @IsIn(['used', 'new'])

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Query } from 'express-serve-static-core';
 import { Model } from 'mongoose';
@@ -413,154 +417,171 @@ export class ProductService {
     product: UpdateProductDto,
     files: Express.Multer.File[]
   ): Promise<Product> {
-    try {
+    const shouldTranslateName = query.shouldTranslateName === 'true';
+    const sourceLanguage: 'en' | 'sv' = (query.lang as 'en' | 'sv') || 'en';
 
-      const shouldTranslateName: boolean = query.shouldTranslateName === 'true';
-      let nameTranslations: MultiLanguageString | undefined;
-      let descriptionTranslations: MultiLanguageString | undefined;
-      const sourceLanguage: 'en' | 'sv' = (query.lang as 'en' | 'sv') || 'en';
+    const tryParseArrayCsv = (value?: string | null): string[] => {
+      if (!value || typeof value !== 'string') return [];
+      return value
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+    };
 
-      const tryParseArrayCsv = (value?: string | null): string[] => {
-        if (!value || typeof value !== 'string') return [];
-        return value
-          .split(',')
-          .map(s => s.trim())
-          .filter(Boolean);
-      };
-
-      const tryParseJSON = (value: any): any => {
-        if (typeof value !== 'string') return value;
-        const t = value.trim();
-        if (!t.startsWith('{') && !t.startsWith('[')) return value;
-        try {
-          const parsed = JSON.parse(t);
-          return typeof parsed === 'object' && parsed !== null ? parsed : value;
-        } catch {
-          return value;
-        }
-      };
-
-      const existingProduct = await this.productModel.findById(id);
-      if (!existingProduct) throw new NotFoundException('Product not found');
- 
-      const newUrls: string[] = files?.length
-        ? await this.uploadProductPhotos(id, files)
-        : [];
-
-      const queue = tryParseArrayCsv(product.photoQueue);
-
-      let finalPhotos: string[] = [];
-
-      if (queue.length) {
-        let j = 0; 
-        finalPhotos = queue
-          .map(token => {
-            if (token === 'file') {
-              const u = newUrls[j];
-              j++;
-              return u;
-            }
-            return token;
-          })
-          .filter((u): u is string => !!u);
-      } else {
-        finalPhotos = [...(existingProduct.photos ?? []), ...newUrls];
+    const tryParseJSON = (value: any): any => {
+      if (typeof value !== 'string') return value;
+      const t = value.trim();
+      if (!t.startsWith('{') && !t.startsWith('[')) return value;
+      try {
+        const parsed = JSON.parse(t);
+        return typeof parsed === 'object' && parsed !== null ? parsed : value;
+      } catch {
+        return value;
       }
-      const industriesArray = tryParseArrayCsv(product.industries);
+    };
 
-      const category = await this.categoryService.findOrCreate(
-        product.category as string,
-        'en'
-      );
+    // Берём “человеческий” текст из string | MultiLanguageString
+    const pickText = (v: any): string | null => {
+      if (v === null || v === undefined) return null;
 
-      const manufacturer = product.manufacturer
-        ? await this.manufacturerService.findOrCreate(product.manufacturer)
-        : null;
+      if (typeof v === 'string') {
+        const s = v.trim();
+        return s ? s : null;
+      }
 
-      const industries = industriesArray.length
-        ? await this.industryService.findOrCreate(industriesArray, 'en')
-        : [];
-  
-      const name = tryParseJSON(product.name);
-      const description = tryParseJSON(product.description);
-
-      if (shouldTranslateName) {
-        const nameToTranslate =
-          typeof name === 'string'
-            ? name
-            : (name?.[sourceLanguage] ?? name?.en);
-
-
-        if (typeof nameToTranslate === 'string' && nameToTranslate.trim()) {
-          nameTranslations = await this.translationService.translateText(
-            nameToTranslate,
-            sourceLanguage
-          );
+      if (typeof v === 'object') {
+        const t = v?.[sourceLanguage] ?? v?.en;
+        if (typeof t === 'string') {
+          const s = t.trim();
+          return s ? s : null;
         }
       }
 
-      if (typeof description === 'string') {
-        descriptionTranslations = await this.translationService.translateText(
-          description,
+      return null;
+    };
+
+    const existingProduct = await this.productModel.findById(id);
+    if (!existingProduct) throw new NotFoundException('Product not found');
+
+    const newUrls: string[] = files?.length
+      ? await this.uploadProductPhotos(id, files)
+      : [];
+
+    const queue = tryParseArrayCsv(product.photoQueue);
+    let finalPhotos: string[] = [];
+
+    if (queue.length) {
+      let j = 0;
+      finalPhotos = queue
+        .map(token => {
+          if (token === 'file') {
+            const u = newUrls[j];
+            j++;
+            return u;
+          }
+          return token;
+        })
+        .filter((u): u is string => !!u);
+    } else {
+      finalPhotos = [...(existingProduct.photos ?? []), ...newUrls];
+    }
+    const rawName = tryParseJSON(product.name);
+    const rawDescription = tryParseJSON(product.description);
+    const rawCategory = tryParseJSON(product.category);
+
+    const categoryText = pickText(rawCategory);
+    if (!categoryText) {
+      throw new BadRequestException('Category is required');
+    }
+
+    const manufacturerText = pickText(product.manufacturer);
+    const industriesArray = tryParseArrayCsv(product.industries).filter(
+      Boolean
+    );
+
+    const category = await this.categoryService.findOrCreate(
+      categoryText,
+      sourceLanguage
+    );
+
+    const manufacturer = manufacturerText
+      ? await this.manufacturerService.findOrCreate(manufacturerText)
+      : null;
+
+    const industries = industriesArray.length
+      ? await this.industryService.findOrCreate(industriesArray, sourceLanguage)
+      : [];
+
+    let nameTranslations: MultiLanguageString | undefined;
+    let descriptionTranslations: MultiLanguageString | undefined;
+
+    if (shouldTranslateName) {
+      const nameToTranslate = pickText(rawName);
+      if (nameToTranslate) {
+        nameTranslations = await this.translationService.translateText(
+          nameToTranslate,
           sourceLanguage
         );
       }
+    }
 
-      const finalName = nameTranslations || name;
-      const finalDescription = descriptionTranslations || description;
+    if (typeof rawDescription === 'string' && rawDescription.trim()) {
+      descriptionTranslations = await this.translationService.translateText(
+        rawDescription.trim(),
+        sourceLanguage
+      );
+    }
 
-      let deletionDate: Date | null = null;
-      if (product.deletionDate === 'null') deletionDate = null;
-      else
-        deletionDate = product.deletionDate
-          ? new Date(product.deletionDate)
-          : null;
-      if (deletionDate) deletionDate.setHours(0, 0, 0, 0);
-   
-      const nameForSlug =
-        typeof finalName === 'string' ? finalName : finalName?.en;
-      let newSlug = existingProduct.slug;
+    const finalName = nameTranslations ?? rawName;
+    const finalDescription = descriptionTranslations ?? rawDescription;
 
-      if (nameForSlug && nameForSlug.trim()) {
-        const baseSlug = slugify(nameForSlug, { lower: true, strict: true });
-        if (baseSlug && baseSlug !== existingProduct.slug) {
-          newSlug = baseSlug;
-          let counter = 1;
-          while (
-            await this.productModel.findOne({ slug: newSlug, _id: { $ne: id } })
-          ) {
-            newSlug = `${baseSlug}-${counter}`;
-            counter++;
-          }
+    let deletionDate: Date | null = null;
+    if (product.deletionDate === 'null') deletionDate = null;
+    else if (product.deletionDate)
+      deletionDate = new Date(product.deletionDate);
+    if (deletionDate) deletionDate.setHours(0, 0, 0, 0);
+
+    const nameForSlug = pickText(finalName);
+    let newSlug = existingProduct.slug;
+
+    if (nameForSlug) {
+      const baseSlug = slugify(nameForSlug, { lower: true, strict: true });
+      if (baseSlug && baseSlug !== existingProduct.slug) {
+        newSlug = baseSlug;
+        let counter = 1;
+        while (
+          await this.productModel.findOne({ slug: newSlug, _id: { $ne: id } })
+        ) {
+          newSlug = `${baseSlug}-${counter}`;
+          counter++;
         }
       }
- 
-      const result = await this.productModel.findByIdAndUpdate(
-        id,
-        {
-          $set: {
-            slug: newSlug,
-            name: finalName,
-            idNumber: product.idNumber,
-            dimensions: product.dimensions,
-            description: finalDescription,
-            category: category.name,
-            manufacturer: manufacturer ? manufacturer.name : null,
-            industries: industries.map(ind => ind.name),
-            photos: finalPhotos,
-            condition: product.condition,
-            video: product.video,
-            deletionDate,
-          },
-        },
-        { new: true, runValidators: true }
-      );
-
-
-      return result;
-    } catch (error) {
-      throw error;
     }
+
+    const setData: any = {
+      slug: newSlug,
+      name: finalName,
+      idNumber: product.idNumber,
+      description: finalDescription,
+      category: category.name,
+      manufacturer: manufacturer ? manufacturer.name : null,
+      industries: industries.map(ind => ind.name),
+      photos: finalPhotos,
+      condition: product.condition,
+      deletionDate,
+    };
+
+    if (product.dimensions !== undefined)
+      setData.dimensions = product.dimensions;
+    if (product.video !== undefined) setData.video = product.video;
+
+    const result = await this.productModel.findByIdAndUpdate(
+      id,
+      { $set: setData },
+      { new: true, runValidators: true }
+    );
+
+    return result;
   }
 
   async deleteById(id: string): Promise<Product | null> {
