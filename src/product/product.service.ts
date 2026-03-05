@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Query } from 'express-serve-static-core';
 import { Model } from 'mongoose';
@@ -17,8 +21,9 @@ import { Industry } from 'src/schemas/industry.schema';
 import { Manufacturer } from 'src/schemas/manufacturer.schema';
 import { Product } from 'src/schemas/product.schema';
 import { UntranslatedProduct } from 'src/schemas/untranslated-product.schema';
-import { UpdateProduct } from 'src/schemas/update-product';
 import { TranslationService } from 'src/translation/translation.service';
+
+import { UpdateProductDto } from './dto/update-product.dto';
 
 @Injectable()
 export class ProductService {
@@ -406,141 +411,177 @@ export class ProductService {
       deletionDate: { $lte: now },
     });
   }
-
   async updateById(
     id: string,
     query: Query,
-    product: UpdateProduct,
+    product: UpdateProductDto,
     files: Express.Multer.File[]
   ): Promise<Product> {
-    const shouldTranslateName: boolean = query.shouldTranslateName === 'true';
-    let nameTranslations: MultiLanguageString | undefined;
-    let descriptionTranslations: MultiLanguageString | undefined;
+    const shouldTranslateName = query.shouldTranslateName === 'true';
     const sourceLanguage: 'en' | 'sv' = (query.lang as 'en' | 'sv') || 'en';
 
-    const urlsThatWereFiles: string[] = await this.uploadProductPhotos(
-      id,
-      files
-    );
-    const photos = product.photoQueue
-      ? product.photoQueue.split(',').map(photo => photo.trim())
-      : [];
+    const tryParseArrayCsv = (value?: string | null): string[] => {
+      if (!value || typeof value !== 'string') return [];
+      return value
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+    };
 
-    let j = 0;
-    let name = product.name;
-    let description = product.description;
-    let deletionDate;
-
-    function tryParseJSON(value: any): any {
+    const tryParseJSON = (value: any): any => {
+      if (typeof value !== 'string') return value;
+      const t = value.trim();
+      if (!t.startsWith('{') && !t.startsWith('[')) return value;
       try {
-        const parsed = JSON.parse(value);
+        const parsed = JSON.parse(t);
         return typeof parsed === 'object' && parsed !== null ? parsed : value;
-      } catch (error) {
+      } catch {
         return value;
       }
-    }
+    };
 
-    for (let i = 0; i < photos.length; i++) {
-      if (photos[i] === 'file' && j < urlsThatWereFiles.length) {
-        photos[i] = urlsThatWereFiles[j];
-        j++;
+    // Берём “человеческий” текст из string | MultiLanguageString
+    const pickText = (v: any): string | null => {
+      if (v === null || v === undefined) return null;
+
+      if (typeof v === 'string') {
+        const s = v.trim();
+        return s ? s : null;
       }
-    }
 
-    const industriesArray: string[] = product.industries
-      ? product.industries.split(',').map(industry => industry.trim())
-      : [];
-    const category = await this.categoryService.findOrCreate(
-      product.category,
-      'en'
-    );
-    const manufacturer = await this.manufacturerService.findOrCreate(
-      product.manufacturer
-    );
-    const industries = await this.industryService.findOrCreate(
-      industriesArray,
-      'en'
-    );
+      if (typeof v === 'object') {
+        const t = v?.[sourceLanguage] ?? v?.en;
+        if (typeof t === 'string') {
+          const s = t.trim();
+          return s ? s : null;
+        }
+      }
 
-    name = tryParseJSON(product.name);
-    if (shouldTranslateName) {
-      nameTranslations = await this.translationService.translateText(
-        product.name,
-        sourceLanguage
-      );
-    }
-    description = tryParseJSON(product.description);
-
-    if (typeof description === 'string') {
-      descriptionTranslations = await this.translationService.translateText(
-        product.description,
-        sourceLanguage
-      );
-    }
-
-    if (product.deletionDate === 'null') {
-      deletionDate = null;
-    } else {
-      deletionDate = product.deletionDate
-        ? new Date(product.deletionDate)
-        : null;
-    }
-
-    if (deletionDate) {
-      deletionDate.setHours(0, 0, 0, 0);
-    }
+      return null;
+    };
 
     const existingProduct = await this.productModel.findById(id);
-    if (!existingProduct) {
-      throw new NotFoundException('Product not found');
+    if (!existingProduct) throw new NotFoundException('Product not found');
+
+    const newUrls: string[] = files?.length
+      ? await this.uploadProductPhotos(id, files)
+      : [];
+
+    const queue = tryParseArrayCsv(product.photoQueue);
+    let finalPhotos: string[] = [];
+
+    if (queue.length) {
+      let j = 0;
+      finalPhotos = queue
+        .map(token => {
+          if (token === 'file') {
+            const u = newUrls[j];
+            j++;
+            return u;
+          }
+          return token;
+        })
+        .filter((u): u is string => !!u);
+    } else {
+      finalPhotos = [...(existingProduct.photos ?? []), ...newUrls];
+    }
+    const rawName = tryParseJSON(product.name);
+    const rawDescription = tryParseJSON(product.description);
+    const rawCategory = tryParseJSON(product.category);
+
+    const categoryText = pickText(rawCategory);
+    if (!categoryText) {
+      throw new BadRequestException('Category is required');
     }
 
-    const finalName = nameTranslations || name;
+    const manufacturerText = pickText(product.manufacturer);
+    const industriesArray = tryParseArrayCsv(product.industries).filter(
+      Boolean
+    );
 
-    const nameForSlug =
-      typeof finalName === 'string' ? finalName : finalName?.en;
+    const category = await this.categoryService.findOrCreate(
+      categoryText,
+      sourceLanguage
+    );
 
+    const manufacturer = manufacturerText
+      ? await this.manufacturerService.findOrCreate(manufacturerText)
+      : null;
+
+    const industries = industriesArray.length
+      ? await this.industryService.findOrCreate(industriesArray, sourceLanguage)
+      : [];
+
+    let nameTranslations: MultiLanguageString | undefined;
+    let descriptionTranslations: MultiLanguageString | undefined;
+
+    if (shouldTranslateName) {
+      const nameToTranslate = pickText(rawName);
+      if (nameToTranslate) {
+        nameTranslations = await this.translationService.translateText(
+          nameToTranslate,
+          sourceLanguage
+        );
+      }
+    }
+
+    if (typeof rawDescription === 'string' && rawDescription.trim()) {
+      descriptionTranslations = await this.translationService.translateText(
+        rawDescription.trim(),
+        sourceLanguage
+      );
+    }
+
+    const finalName = nameTranslations ?? rawName;
+    const finalDescription = descriptionTranslations ?? rawDescription;
+
+    let deletionDate: Date | null = null;
+    if (product.deletionDate === 'null') deletionDate = null;
+    else if (product.deletionDate)
+      deletionDate = new Date(product.deletionDate);
+    if (deletionDate) deletionDate.setHours(0, 0, 0, 0);
+
+    const nameForSlug = pickText(finalName);
     let newSlug = existingProduct.slug;
 
-    if (nameForSlug && nameForSlug !== existingProduct.slug) {
-      const baseSlug = slugify(nameForSlug, {
-        lower: true,
-        strict: true,
-      });
-
-      newSlug = baseSlug;
-
-      let counter = 1;
-      while (
-        await this.productModel.findOne({ slug: newSlug, _id: { $ne: id } })
-      ) {
-        newSlug = `${baseSlug}-${counter}`;
-        counter++;
+    if (nameForSlug) {
+      const baseSlug = slugify(nameForSlug, { lower: true, strict: true });
+      if (baseSlug && baseSlug !== existingProduct.slug) {
+        newSlug = baseSlug;
+        let counter = 1;
+        while (
+          await this.productModel.findOne({ slug: newSlug, _id: { $ne: id } })
+        ) {
+          newSlug = `${baseSlug}-${counter}`;
+          counter++;
+        }
       }
     }
-    return await this.productModel.findByIdAndUpdate(
+
+    const setData: any = {
+      slug: newSlug,
+      name: finalName,
+      idNumber: product.idNumber,
+      description: finalDescription,
+      category: category.name,
+      manufacturer: manufacturer ? manufacturer.name : null,
+      industries: industries.map(ind => ind.name),
+      photos: finalPhotos,
+      condition: product.condition,
+      deletionDate,
+    };
+
+    if (product.dimensions !== undefined)
+      setData.dimensions = product.dimensions;
+    if (product.video !== undefined) setData.video = product.video;
+
+    const result = await this.productModel.findByIdAndUpdate(
       id,
-      {
-        $set: {
-          slug: newSlug,
-          name: nameTranslations || name,
-          idNumber: product.idNumber,
-          dimensions: product.dimensions,
-          description: descriptionTranslations || description,
-          category: category.name,
-          manufacturer: manufacturer.name,
-          industries: industries.map(industry => industry.name),
-          photos,
-          condition: product.condition,
-          video: product.video,
-          deletionDate,
-        },
-      },
-      {
-        new: true,
-        runValidators: true,
-      }
+      { $set: setData },
+      { new: true, runValidators: true }
     );
+
+    return result;
   }
 
   async deleteById(id: string): Promise<Product | null> {

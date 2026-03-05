@@ -12,7 +12,16 @@ export class OpenAIService {
     });
   }
 
-  async translateText(text: string, targetLanguage: string): Promise<string> {
+  private toNonEmptyString(value: unknown): string | null {
+    if (typeof value !== 'string') return null;
+    const cleaned = value.trim();
+    return cleaned.length ? cleaned : null;
+  }
+
+  async translateText(text: unknown, targetLanguage: string): Promise<string> {
+    const safeText = this.toNonEmptyString(text);
+    if (!safeText) return '';
+
     try {
       const response = await this.openai.chat.completions.create({
         model: 'gpt-4-turbo',
@@ -57,7 +66,7 @@ Use the most appropriate translation based on the target language. If unsure, pr
           },
           {
             role: 'user',
-            content: text,
+            content: safeText,
           },
         ],
       });
@@ -72,6 +81,9 @@ Use the most appropriate translation based on the target language. If unsure, pr
   async generateProductDescription(
     dto: GenerateDescriptionPreviewDto
   ): Promise<string> {
+    const safeDesc = this.toNonEmptyString(dto?.description);
+    if (!safeDesc) return '';
+
     try {
       const response = await this.openai.chat.completions.create({
         model: 'gpt-4-turbo',
@@ -97,7 +109,7 @@ Return only the final edited description in plain text.
           },
           {
             role: 'user',
-            content: dto.description,
+            content: safeDesc,
           },
         ],
       });
