@@ -43,12 +43,11 @@ export class ProductController {
     return this.productService.findBySlug(slug);
   }
 
-  @Get(':id/recommended-products')
+  @Get(':slug/recommended-products')
   async getRecommendedProducts(
-    @Param('id')
-    id: string
+    @Param('slug') slug: string
   ): Promise<Product[]> {
-    return this.productService.findRecommendedProductsById(id);
+    return this.productService.findRecommendedProductsBySlug(slug);
   }
 
   @Post()
