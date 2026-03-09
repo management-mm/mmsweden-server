@@ -197,10 +197,15 @@ export class ProductService {
     };
   }
 
-  async findRecommendedProductsById(id: string): Promise<Product[]> {
-    const product = await this.productModel.findById(id);
+  async findRecommendedProductsBySlug(slug: string): Promise<Product[]> {
+    const product = await this.productModel.findOne({ slug });
 
-    const { category, industries, manufacturer } = product;
+    if (!product) {
+      throw new NotFoundException(`Product with slug "${slug}" not found`);
+    }
+
+    const { category, industries, manufacturer, _id } = product;
+
     const categoryCondition = category
       ? {
           [`category.${LanguageKeys.EN}`]: {
@@ -235,7 +240,7 @@ export class ProductService {
           }
         : {};
 
-    const idCondition = { _id: { $ne: id } };
+    const idCondition = { _id: { $ne: _id } };
 
     const searchConditions = [
       [
@@ -440,7 +445,6 @@ export class ProductService {
       }
     };
 
-    // Берём “человеческий” текст из string | MultiLanguageString
     const pickText = (v: any): string | null => {
       if (v === null || v === undefined) return null;
 
