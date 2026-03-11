@@ -1,6 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import { UploadApiErrorResponse, v2 as cloudinary } from 'cloudinary';
-import { UploadApiResponse } from 'cloudinary';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  UploadApiErrorResponse,
+  UploadApiResponse,
+  v2 as cloudinary,
+} from 'cloudinary';
 import * as streamifier from 'streamifier';
 
 @Injectable()
@@ -8,23 +11,40 @@ export class CloudinaryService {
   async uploadImage(
     file: Express.Multer.File,
     folderName: string
-  ): Promise<UploadApiResponse | UploadApiErrorResponse> {
-    return new Promise((resolve, reject) => {
-      const upload = cloudinary.uploader.upload_stream(
-        {
-          folder: folderName,
-          transformation: [{ fetch_format: 'webp' }, { quality: 'auto' }],
-          invalidate: true,
-        },
-        (error, result) => {
-          if (error) {
-            reject(error);
+  ): Promise<UploadApiResponse> {
+    try {
+      const result = await new Promise<UploadApiResponse>((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          {
+            folder: folderName,
+            resource_type: 'image',
+            invalidate: true,
+          },
+          (
+            error: UploadApiErrorResponse | undefined,
+            result: UploadApiResponse | undefined
+          ) => {
+            if (error) {
+              return reject(error);
+            }
+
+            if (!result) {
+              return reject(new Error('Cloudinary upload returned no result'));
+            }
+
+            resolve(result);
           }
-          resolve(result);
-        }
+        );
+
+        streamifier.createReadStream(file.buffer).pipe(uploadStream);
+      });
+
+      return result;
+    } catch (error) {
+      throw new InternalServerErrorException(
+        `Failed to upload image to Cloudinary: ${error.message}`
       );
-      streamifier.createReadStream(file.buffer).pipe(upload);
-    });
+    }
   }
 
   async deleteFolder(categoryFolder: string, idNumber: string): Promise<void> {
@@ -54,7 +74,7 @@ export class CloudinaryService {
         }
       }
     } catch (error) {
-      throw new Error(
+      throw new InternalServerErrorException(
         `Error while deleting folder ${folderPath}: ${error.message}`
       );
     }
