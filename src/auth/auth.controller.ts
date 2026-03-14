@@ -26,6 +26,11 @@ export class AuthController {
     return this.authService.login(loginDto);
   }
 
+  @Post('/logout')
+  logout(): Promise<{ message: string }> {
+    return this.authService.logout();
+  }
+
   @UseGuards(AuthGuard('jwt'))
   @Get('/current')
   async getCurrent(@Request() req): Promise<{ email: string }> {

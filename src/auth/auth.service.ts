@@ -15,6 +15,7 @@ export class AuthService {
     private userModel: Model<User>,
     private jwtService: JwtService
   ) {}
+
   async signUp(signUpDto: SignUpDto): Promise<{ token: string }> {
     const { name, email, password } = signUpDto;
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -24,7 +25,9 @@ export class AuthService {
       email,
       password: hashedPassword,
     });
+
     const token = this.jwtService.sign({ id: user._id });
+
     return { token };
   }
 
@@ -44,14 +47,21 @@ export class AuthService {
     }
 
     const token = this.jwtService.sign({ id: user._id });
+
     return { token };
+  }
+
+  async logout(): Promise<{ message: string }> {
+    return { message: 'Logged out successfully' };
   }
 
   async getCurrent(userId: string): Promise<{ email: string }> {
     const user = await this.userModel.findById(userId).select('email');
+
     if (!user) {
       throw new UnauthorizedException('User not found');
     }
+
     return { email: user.email };
   }
 }
