@@ -12,6 +12,7 @@ import { ManufacturerModule } from './manufacturer/manufacturer.module';
 import { OpenAIModule } from './openai/openai.module';
 import { ProductModule } from './product/product.module';
 import { TranslationModule } from './translation/translation.module';
+import { CountersModule } from './counters/counters.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { TranslationModule } from './translation/translation.module';
     CloudinaryModule,
     DeepLModule,
     OpenAIModule,
+    CountersModule,
   ],
   controllers: [],
   providers: [],
