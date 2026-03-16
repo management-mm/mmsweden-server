@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 
-import { Counter, CounterDocument } from './counters.schema';
+import { Counter, CounterDocument } from '../schemas/counters.schema';
 
 @Injectable()
 export class CountersService {
@@ -10,6 +10,12 @@ export class CountersService {
     @InjectModel(Counter.name)
     private counterModel: Model<CounterDocument>
   ) {}
+
+  async getCurrentSequence(name: string): Promise<number> {
+  const counter = await this.counterModel.findOne({ _id: name });
+
+  return counter?.seq ?? 0;
+}
 
   async getNextSequence(name: string): Promise<number> {
     const counter = await this.counterModel.findOneAndUpdate(
