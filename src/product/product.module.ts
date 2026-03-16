@@ -3,6 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { AuthModule } from 'src/auth/auth.module';
 import { CategoryModule } from 'src/category/category.module';
 import { CloudinaryModule } from 'src/cloudinary/cloudinary.module';
+import { CountersModule } from 'src/counters/counters.module';
 import { IndustryModule } from 'src/industry/industry.module';
 import { ManufacturerModule } from 'src/manufacturer/manufacturer.module';
 import { OpenAIModule } from 'src/openai/openai.module';
@@ -22,6 +23,7 @@ import { ProductService } from './product.service';
     TranslationModule,
     CloudinaryModule,
     OpenAIModule,
+    CountersModule,
     MongooseModule.forFeature([{ name: Product.name, schema: ProductSchema }]),
   ],
   controllers: [ProductController],

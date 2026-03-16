@@ -19,6 +19,9 @@ export class CreateProductDto {
   @IsString()
   readonly idNumber: string;
 
+  @IsOptional()
+  autoGenerateId?: boolean;
+
   @IsNotEmpty()
   @IsString()
   readonly description: string;

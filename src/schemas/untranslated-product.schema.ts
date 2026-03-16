@@ -10,8 +10,11 @@ export class UntranslatedProduct {
   @Prop({ type: String, required: true })
   name: string;
 
-  @Prop({ type: String, required: true })
+  @Prop({ type: String, required: true, unique: true })
   idNumber: string;
+
+  @Prop({ type: Boolean, required: false })
+  autoGenerateId?: boolean;
 
   @Prop({ type: String, required: true })
   description: string;

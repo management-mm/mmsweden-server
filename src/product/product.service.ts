@@ -14,6 +14,7 @@ import {
   LanguageKeys,
   MultiLanguageString,
 } from 'src/common/types/language.types';
+import { CountersService } from 'src/counters/counters.service';
 import { IndustryService } from 'src/industry/industry.service';
 import { ManufacturerService } from 'src/manufacturer/manufacturer.service';
 import { Category } from 'src/schemas/category.schema';
@@ -34,7 +35,8 @@ export class ProductService {
     private readonly manufacturerService: ManufacturerService,
     private readonly industryService: IndustryService,
     private readonly translationService: TranslationService,
-    private readonly cloudinaryService: CloudinaryService
+    private readonly cloudinaryService: CloudinaryService,
+    private countersService: CountersService
   ) {}
 
   private async deleteProductFolder(product: Product): Promise<void> {
@@ -287,6 +289,23 @@ export class ProductService {
     let manufacturer: Manufacturer;
     let industries: Industry[];
 
+    let idNumber = product.idNumber;
+
+    if (product.autoGenerateId) {
+      const seq = await this.countersService.getNextSequence('product');
+      idNumber = seq.toString();
+    } else {
+      if (!idNumber) {
+        throw new BadRequestException('idNumber is required');
+      }
+
+      const exists = await this.productModel.exists({ idNumber });
+
+      if (exists) {
+        throw new BadRequestException('idNumber already exists');
+      }
+    }
+
     const industriesArray: string[] = product.industries
       ? product.industries.split(',').map(industry => industry.trim())
       : [];
@@ -347,6 +366,7 @@ export class ProductService {
       ...product,
       slug,
       name: nameTranslations || product.name,
+      idNumber,
       description: descriptionTranslations,
       category: category.name,
       ...(manufacturer && { manufacturer: manufacturer.name }),
@@ -416,6 +436,7 @@ export class ProductService {
       deletionDate: { $lte: now },
     });
   }
+
   async updateById(
     id: string,
     query: Query,
