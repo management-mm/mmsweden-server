@@ -1,5 +1,7 @@
+import { Transform } from 'class-transformer';
 import {
   IsArray,
+  IsBoolean,
   IsEnum,
   IsNotEmpty,
   IsOptional,
@@ -19,8 +21,14 @@ export class CreateProductDto {
   @IsString()
   readonly idNumber: string;
 
+  @IsBoolean()
   @IsOptional()
-  autoGenerateId?: boolean;
+  @Transform(({ value }) => {
+    if (value === true || value === 'true') return true;
+    if (value === false || value === 'false') return false;
+    return undefined;
+  })
+  autoGenerateId: boolean;
 
   @IsNotEmpty()
   @IsString()
