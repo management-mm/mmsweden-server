@@ -2,8 +2,8 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 
 import { Counter, CounterSchema } from '../schemas/counters.schema';
-import { CountersService } from './counters.service';
 import { CountersController } from './counters.controller';
+import { CountersService } from './counters.service';
 
 @Module({
   imports: [

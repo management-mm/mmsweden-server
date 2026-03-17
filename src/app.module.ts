@@ -5,6 +5,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { AuthModule } from './auth/auth.module';
 import { CategoryModule } from './category/category.module';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
+import { CountersModule } from './counters/counters.module';
 import { DeepLModule } from './deep-l/deep-l.module';
 import { IndustryModule } from './industry/industry.module';
 import { MailerModule } from './mailer/mailer.module';
@@ -12,7 +13,6 @@ import { ManufacturerModule } from './manufacturer/manufacturer.module';
 import { OpenAIModule } from './openai/openai.module';
 import { ProductModule } from './product/product.module';
 import { TranslationModule } from './translation/translation.module';
-import { CountersModule } from './counters/counters.module';
 
 @Module({
   imports: [

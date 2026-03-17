@@ -12,10 +12,10 @@ export class CountersService {
   ) {}
 
   async getCurrentSequence(name: string): Promise<number> {
-  const counter = await this.counterModel.findOne({ _id: name });
+    const counter = await this.counterModel.findOne({ _id: name });
 
-  return counter?.seq ?? 0;
-}
+    return counter?.seq ?? 0;
+  }
 
   async getNextSequence(name: string): Promise<number> {
     const counter = await this.counterModel.findOneAndUpdate(
