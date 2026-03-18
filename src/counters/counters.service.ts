@@ -28,12 +28,10 @@ export class CountersService {
   }
 
   async updateSequence(name: string, seq: number) {
-    const counter = await this.counterModel.findOneAndUpdate(
-      { name },
-      { seq },
+    return this.counterModel.findOneAndUpdate(
+      { _id: name },
+      { $set: { seq } },
       { new: true, upsert: true }
     );
-
-    return counter.seq;
   }
 }
