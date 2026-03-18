@@ -26,4 +26,14 @@ export class CountersService {
 
     return counter.seq;
   }
+
+  async updateSequence(name: string, seq: number) {
+    const counter = await this.counterModel.findOneAndUpdate(
+      { name },
+      { seq },
+      { new: true, upsert: true }
+    );
+
+    return counter.seq;
+  }
 }
