@@ -24,8 +24,8 @@ export class OpenAIService {
 
     try {
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-4-turbo',
-        temperature: 0.2,
+        model: 'gpt-5.4',
+        temperature: 0.5,
         messages: [
           {
             role: 'system',
