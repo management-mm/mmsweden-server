@@ -281,13 +281,15 @@ export class ProductService {
     query: Query,
     files: Express.Multer.File[]
   ): Promise<Product> {
-    const shouldTranslateName: boolean = query.shouldTranslateName === 'true';
+    const shouldTranslateName = query.shouldTranslateName === 'true';
     const sourceLanguage: 'en' | 'sv' = (query.lang as 'en' | 'sv') || 'en';
+
     const photos: string[] = [];
     let nameTranslations: MultiLanguageString | undefined;
-    let category: Category;
-    let manufacturer: Manufacturer;
-    let industries: Industry[];
+
+    let category: Category | null = null;
+    let manufacturer: Manufacturer | null = null;
+    let industries: Industry[] = [];
 
     let idNumber = product.idNumber;
 
@@ -300,14 +302,16 @@ export class ProductService {
       }
 
       const exists = await this.productModel.exists({ idNumber });
-
       if (exists) {
         throw new BadRequestException('idNumber already exists');
       }
     }
 
     const industriesArray: string[] = product.industries
-      ? product.industries.split(',').map(industry => industry.trim())
+      ? product.industries
+          .split(',')
+          .map(industry => industry.trim())
+          .filter(Boolean)
       : [];
 
     if (shouldTranslateName) {
@@ -327,6 +331,8 @@ export class ProductService {
         product.category,
         sourceLanguage
       );
+    } else {
+      throw new BadRequestException('Category is required');
     }
 
     if (product.manufacturer) {
@@ -335,7 +341,7 @@ export class ProductService {
       );
     }
 
-    if (product.industries) {
+    if (industriesArray.length) {
       industries = await this.industryService.findOrCreate(
         industriesArray,
         sourceLanguage
@@ -343,21 +349,19 @@ export class ProductService {
     }
 
     const categoryFolder = this.sanitizeFolderName(category.name.en);
-
-    const folderPath = `products/${categoryFolder}/${product.idNumber}`;
+    const folderPath = `products/${categoryFolder}/${idNumber}`;
 
     for (const file of files) {
       const uploadedPhoto = await this.cloudinaryService.uploadImage(
         file,
         folderPath
       );
-
       photos.push(uploadedPhoto.secure_url);
     }
+
     let slug = slugify(product.name, { lower: true, strict: true });
 
     const existing = await this.productModel.findOne({ slug });
-
     if (existing) {
       slug = `${slug}-${Date.now()}`;
     }
@@ -365,18 +369,14 @@ export class ProductService {
     const createdProduct = new this.productModel({
       ...product,
       slug,
-      name: nameTranslations || product.name,
+      name: nameTranslations ?? product.name,
       idNumber,
       description: descriptionTranslations,
       category: category.name,
-      ...(manufacturer && { manufacturer: manufacturer.name }),
-      photos: photos,
-      industries: industries.map(
-        industry => {
-          return industry.name;
-        },
-        { versionKey: false }
-      ),
+      manufacturer: manufacturer ? manufacturer.name : null,
+      industries: industries.map(industry => industry.name),
+      photos,
+      video: product.video ?? null,
     });
 
     return createdProduct.save();
