@@ -24,6 +24,7 @@ import { Product } from 'src/schemas/product.schema';
 import { UntranslatedProduct } from 'src/schemas/untranslated-product.schema';
 import { TranslationService } from 'src/translation/translation.service';
 
+import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 
 @Injectable()
@@ -277,7 +278,7 @@ export class ProductService {
   }
 
   async create(
-    product: UntranslatedProduct,
+    product: CreateProductDto,
     query: Query,
     files: Express.Multer.File[]
   ): Promise<Product> {

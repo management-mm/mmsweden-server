@@ -17,32 +17,32 @@ export class CreateProductDto {
   @IsString()
   readonly name: string;
 
-  @IsNotEmpty()
-  @IsString()
-  readonly idNumber: string;
-
-  @IsBoolean()
   @IsOptional()
+  @IsString()
+  readonly idNumber?: string;
+
+  @IsOptional()
+  @IsBoolean()
   @Transform(({ value }) => {
     if (value === true || value === 'true') return true;
     if (value === false || value === 'false') return false;
     return undefined;
   })
-  autoGenerateId: boolean;
+  autoGenerateId?: boolean;
 
   @IsNotEmpty()
   @IsString()
   description: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  dimensions: string;
+  dimensions?: string;
 
   photos: File[];
 
   @IsOptional()
   @IsString()
-  video: string;
+  video?: string;
 
   @IsNotEmpty()
   @IsString()
@@ -50,11 +50,11 @@ export class CreateProductDto {
 
   @IsOptional()
   @IsString()
-  manufacturer: string;
+  manufacturer?: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  industries: string;
+  industries?: string;
 
   @IsNotEmpty()
   @IsEnum(['used', 'new'])
