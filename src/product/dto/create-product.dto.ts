@@ -32,27 +32,31 @@ export class CreateProductDto {
 
   @IsNotEmpty()
   @IsString()
-  readonly description: string;
+  description: string;
 
   @IsNotEmpty()
   @IsString()
-  readonly dimensions: string;
+  dimensions: string;
 
-  readonly photos: File[];
+  photos: File[];
 
-  readonly video: string;
+  @IsOptional()
+  @IsString()
+  video: string;
 
   @IsNotEmpty()
   @IsString()
-  readonly category: string;
+  category: string;
 
-  readonly manufacturer: string;
+  @IsOptional()
+  @IsString()
+  manufacturer: string;
 
   @IsNotEmpty()
   @IsString()
-  readonly industries: string;
+  industries: string;
 
   @IsNotEmpty()
   @IsEnum(['used', 'new'])
-  readonly condition: 'used' | 'new';
+  condition: 'used' | 'new';
 }
