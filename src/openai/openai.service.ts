@@ -78,8 +78,8 @@ Rules:
 
     try {
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-4-turbo',
-        temperature: 0.2,
+        model: 'gpt-5.4',
+        temperature: 0.5,
         messages: [
           {
             role: 'system',
@@ -87,17 +87,16 @@ Rules:
 
 Task:
 - Improve English: fix spelling, grammar, punctuation, and wording for clarity.
-- Keep the description concise and sales-ready (no fluff, no marketing hype).
-- Preserve meaning and ALL factual information. Do NOT remove, contradict, or invent facts.
-- Do NOT change numbers, model names, capacities, dimensions, dates, brands, countries, or technical specs unless they are clearly typos.
-- If key commercial/technical details are missing, add them only as short “Missing info:” placeholders (do not guess).
-
-Key details to check (placeholders if absent):
-Manufacturer, model, year, condition, capacity/output, product type/application, key specs, dimensions, power/voltage, included accessories, materials/contact parts, documentation/CE, location, availability, price (if applicable).
+- Keep the description concise and sales-ready.
+- Preserve meaning and all factual information.
+- Do not remove, contradict, or invent facts.
+- Do not change numbers, model names, capacities, dimensions, dates, brands, countries, or technical specs unless they are clearly typos.
+- Do not add any missing-information analysis.
+- Do not add placeholders such as "Missing info:".
+- Do not add comments, notes, headers, bullet points, or extra sections.
 
 Output:
-Return only the final edited description in plain text.
-`,
+Return only the final edited description in plain text.`,
           },
           {
             role: 'user',
@@ -106,7 +105,7 @@ Return only the final edited description in plain text.
         ],
       });
 
-      return response.choices[0]?.message?.content || '';
+      return response.choices[0]?.message?.content?.trim() || '';
     } catch (error) {
       console.error('Error :', error);
       throw new Error('Failed');
