@@ -7,6 +7,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Query } from 'express-serve-static-core';
 import { Model } from 'mongoose';
 import type { SortOrder } from 'mongoose';
+import { ParsedQs } from 'qs';
 import slugify from 'slugify';
 import { CategoryService } from 'src/category/category.service';
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
@@ -88,43 +89,91 @@ export class ProductService {
     const perPage = Number(query.perPage) || 16;
     const currentPage = Number(query.page) || 1;
     const skip = perPage * (currentPage - 1);
+
     const sort: Record<string, SortOrder> =
       String(query.sort) === 'latest' ? { createdAt: -1 } : {};
+
     const categories = ensureArray(query.category);
     const manufacturers = ensureArray(query.manufacturer);
     const industries = ensureArray(query.industry);
 
-    function ensureArray(input) {
-      return Array.isArray(input) ? input : [input];
+    function escapeRegex(value: string): string {
+      return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function ensureArray(
+      input: string | string[] | ParsedQs | ParsedQs[] | undefined
+    ): string[] {
+      if (!input) return [];
+
+      if (Array.isArray(input)) {
+        return input.filter((item): item is string => typeof item === 'string');
+      }
+
+      if (typeof input === 'string') {
+        return [input];
+      }
+
+      return [];
     }
 
     const languages = Object.values(LanguageKeys);
+    const keyword = query.keyword ? escapeRegex(String(query.keyword)) : '';
 
     const keywordCondition = query.keyword
       ? {
           $or: [
             ...languages.map(lang => ({
               [`name.${lang}`]: {
-                $regex: query.keyword,
+                $regex: keyword,
                 $options: 'i',
               },
             })),
             {
               name: {
-                $regex: query.keyword,
+                $regex: keyword,
                 $options: 'i',
               },
             },
             {
               idNumber: {
-                $regex: `^${query.keyword}`,
+                $regex: `^${keyword}`,
+                $options: 'i',
               },
             },
+            ...languages.map(lang => ({
+              [`category.${lang}`]: {
+                $regex: keyword,
+                $options: 'i',
+              },
+            })),
+            {
+              manufacturer: {
+                $regex: keyword,
+                $options: 'i',
+              },
+            },
+            {
+              condition: {
+                $regex: keyword,
+                $options: 'i',
+              },
+            },
+            ...languages.map(lang => ({
+              industries: {
+                $elemMatch: {
+                  [lang]: {
+                    $regex: keyword,
+                    $options: 'i',
+                  },
+                },
+              },
+            })),
           ],
         }
       : {};
 
-    const categoryCondition = query.category
+    const categoryCondition = categories.length
       ? {
           $or: categories.map(categoryItem => ({
             [`category.${LanguageKeys.EN}`]: categoryItem,
@@ -132,13 +181,12 @@ export class ProductService {
         }
       : {};
 
-    const manufacturerCondition = query.manufacturer
+    const manufacturerCondition = manufacturers.length
       ? {
           $or: manufacturers.map(manufacturerItem => ({
             manufacturer: {
-              $regex: manufacturerItem
-                .replace(/\s+/g, '')
-                .replace(/[+]/g, '\\+'),
+              $regex: escapeRegex(manufacturerItem),
+              $options: 'i',
             },
           })),
         }
@@ -147,19 +195,19 @@ export class ProductService {
     const conditionCondition = query.condition
       ? {
           condition: {
-            $regex: query.condition,
+            $regex: escapeRegex(String(query.condition)),
             $options: 'i',
           },
         }
       : {};
 
-    const industryCondition = query.industry
+    const industryCondition = industries.length
       ? {
           $or: industries.map(industryItem => ({
             industries: {
               $elemMatch: {
-                [`${LanguageKeys.EN}`]: {
-                  $regex: industryItem,
+                [LanguageKeys.EN]: {
+                  $regex: escapeRegex(industryItem),
                   $options: 'i',
                 },
               },
@@ -185,14 +233,12 @@ export class ProductService {
       : {};
 
     const products = await this.productModel
-      .find({ ...conditions })
+      .find(conditions)
       .limit(perPage)
       .sort(sort)
       .skip(skip);
 
-    const totalProducts = await this.productModel.countDocuments({
-      ...conditions,
-    });
+    const totalProducts = await this.productModel.countDocuments(conditions);
 
     return {
       products,
