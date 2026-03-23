@@ -20,17 +20,31 @@ export class IndustryService {
   ) {}
 
   async findAll(query: Query): Promise<Industry[]> {
-    const lang: LanguageKeys = query.lang as LanguageKeys;
-    const keywordCondition =
-      query.keyword && query.lang
-        ? {
-            [`name.${lang}`]: {
-              $regex: query.keyword,
-              $options: 'i',
-            },
-          }
-        : {};
-    return this.industryModel.find(keywordCondition).exec();
+    const lang = query.lang as LanguageKeys;
+    const keyword =
+      typeof query.keyword === 'string' ? query.keyword.trim() : '';
+
+    if (!keyword || !lang) {
+      return this.industryModel.find().exec();
+    }
+
+    const industries = await this.industryModel.find({
+      [`name.${lang}`]: {
+        $regex: keyword,
+        $options: 'i',
+      },
+    });
+
+    if (industries.length > 0 || lang === LanguageKeys.EN) {
+      return industries;
+    }
+
+    return this.industryModel.find({
+      [`name.${LanguageKeys.EN}`]: {
+        $regex: keyword,
+        $options: 'i',
+      },
+    });
   }
 
   async findOrCreate(
