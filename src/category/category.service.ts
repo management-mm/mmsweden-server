@@ -24,6 +24,7 @@ export class CategoryService {
 
   async findAll(query: Query): Promise<Category[]> {
     const lang: LanguageKeys = query.lang as LanguageKeys;
+
     const keywordCondition =
       query.keyword && query.lang
         ? {
@@ -33,7 +34,26 @@ export class CategoryService {
             },
           }
         : {};
-    return this.categoryModel.find(keywordCondition).exec();
+
+    const categories = await this.categoryModel.find(keywordCondition).exec();
+
+    if (
+      categories.length > 0 ||
+      lang === LanguageKeys.EN ||
+      !query.keyword ||
+      !query.lang
+    ) {
+      return categories;
+    }
+
+    return this.categoryModel
+      .find({
+        [`name.${LanguageKeys.EN}`]: {
+          $regex: query.keyword,
+          $options: 'i',
+        },
+      })
+      .exec();
   }
 
   async findOrCreate(
