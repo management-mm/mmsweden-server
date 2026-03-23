@@ -6,6 +6,7 @@ export enum LanguageKeys {
   ES = 'es',
   RU = 'ru',
   UK = 'uk',
+  PL = 'pl',
 }
 
 export type MultiLanguageString = {

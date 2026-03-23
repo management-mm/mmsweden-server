@@ -68,6 +68,13 @@ export class MailerController {
         success: true,
         message: {
           en: 'Your request has been successfully sent. It is going to be processed.',
+          sv: 'Din förfrågan har skickats framgångsrikt. Den kommer att behandlas.',
+          de: 'Ihre Anfrage wurde erfolgreich gesendet. Sie wird bearbeitet.',
+          es: 'Su solicitud ha sido enviada con éxito. Se procesará.',
+          fr: 'Votre demande a été envoyée avec succès. Elle sera traitée.',
+          ru: 'Ваш запрос был успешно отправлен. Он будет обработан.',
+          uk: 'Ваш запит був успішно надісланий. Він буде оброблений.',
+          pl: 'Twoje zapytanie zostało pomyślnie wysłane. Zostanie przetworzone.',
         },
         result,
       };
@@ -100,6 +107,13 @@ export class MailerController {
         success: true,
         message: {
           en: 'Your request has been successfully sent. It is going to be processed.',
+          sv: 'Din förfrågan har skickats framgångsrikt. Den kommer att behandlas.',
+          de: 'Ihre Anfrage wurde erfolgreich gesendet. Sie wird bearbeitet.',
+          es: 'Su solicitud ha sido enviada con éxito. Se procesará.',
+          fr: 'Votre demande a été envoyée avec succès. Elle sera traitée.',
+          ru: 'Ваш запрос был успешно отправлен. Он будет обработан.',
+          uk: 'Ваш запит був успішно надісланий. Він буде оброблений.',
+          pl: 'Twoje zapytanie zostało pomyślnie wysłane. Zostanie przetworzone.',
         },
         result,
       };
@@ -138,6 +152,7 @@ export class MailerController {
           fr: 'Votre demande a été envoyée avec succès. Elle sera traitée.',
           ru: 'Ваш запрос был успешно отправлен. Он будет обработан.',
           uk: 'Ваш запит був успішно надісланий. Він буде оброблений.',
+          pl: 'Twoje zapytanie zostało pomyślnie wysłane. Zostanie przetworzone.',
         },
         result,
       };

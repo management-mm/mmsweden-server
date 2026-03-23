@@ -32,6 +32,7 @@ export class TranslationService {
         es: '',
         ru: '',
         uk: '',
+        pl: '',
       };
     }
     const translations: Partial<MultiLanguageString> = {
@@ -45,6 +46,7 @@ export class TranslationService {
       'es',
       'ru',
       'uk',
+      'pl',
     ];
 
     await Promise.all(
