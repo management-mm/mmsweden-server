@@ -308,7 +308,7 @@ export class ProductService {
 
     const results = await Promise.all(
       searchConditions.map(condition =>
-        this.productModel.find({ $and: condition }).limit(20)
+        this.productModel.find({ $and: condition }).limit(9)
       )
     );
 
