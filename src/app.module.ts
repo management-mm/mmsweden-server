@@ -7,6 +7,7 @@ import { CategoryModule } from './category/category.module';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { CountersModule } from './counters/counters.module';
 import { DeepLModule } from './deep-l/deep-l.module';
+import { EmployeeModule } from './employeers/employees.module';
 import { IndustryModule } from './industry/industry.module';
 import { MailerModule } from './mailer/mailer.module';
 import { ManufacturerModule } from './manufacturer/manufacturer.module';
@@ -32,6 +33,7 @@ import { TranslationModule } from './translation/translation.module';
     DeepLModule,
     OpenAIModule,
     CountersModule,
+    EmployeeModule,
   ],
   controllers: [],
   providers: [],
