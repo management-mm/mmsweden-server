@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { MultiLanguageString } from 'src/common/types/language.types';
 import { Employee } from 'src/schemas/employee.schema';
+import { TranslationService } from 'src/translation/translation.service';
 
 import { CreateEmployeeDto } from './dto/create-employee';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
@@ -11,22 +12,32 @@ import { UpdateEmployeeDto } from './dto/update-employee.dto';
 export class EmployeesService {
   constructor(
     @InjectModel(Employee.name)
-    private readonly employeeModel: Model<Employee>
+    private readonly employeeModel: Model<Employee>,
+    private readonly translationService: TranslationService
   ) {}
 
   async findAll(): Promise<Employee[]> {
     return this.employeeModel.find().exec();
   }
 
-  async create(createEmployeeDto: CreateEmployeeDto): Promise<Employee> {
-    const payload = {
-      ...createEmployeeDto,
-      name: { en: createEmployeeDto.name } as MultiLanguageString,
-      description: { en: createEmployeeDto.description } as MultiLanguageString,
-    };
+  async create(dto: CreateEmployeeDto): Promise<Employee> {
+    const name = await this.translationService.translateEmployeeText(
+      dto.name,
+      'en',
+      'name'
+    );
 
-    const createdEmployee = new this.employeeModel(payload);
-    return createdEmployee.save();
+    const description = await this.translationService.translateEmployeeText(
+      dto.description,
+      'en',
+      'description'
+    );
+
+    return this.employeeModel.create({
+      ...dto,
+      name,
+      description,
+    });
   }
 
   async updateById(
