@@ -111,4 +111,74 @@ Return only the final edited description in plain text.`,
       throw new Error('Failed');
     }
   }
+
+  async translateEmployeeField(
+    text: unknown,
+    targetLanguage: string,
+    field: 'name' | 'description'
+  ): Promise<string> {
+    const safeText = this.toNonEmptyString(text);
+    if (!safeText) return '';
+
+    const systemPrompt =
+      field === 'name'
+        ? `You are a professional translator for business websites in the industrial equipment sector.
+
+Task:
+Translate an employee's NAME into ${targetLanguage}.
+
+Context:
+This text belongs to an employee/contact card on a company website.
+
+Rules:
+- Return only the translated name
+- Keep personal names, surnames, initials, and job titles accurate
+- Do not invent or add any information
+- Do not add explanations, comments, labels, or notes
+- If the name should not be translated, keep it unchanged
+- Preserve punctuation and formatting when relevant
+
+Output:
+Return ONLY the final translated text.`
+        : `You are a professional translator for business websites in the industrial equipment sector.
+
+Task:
+Translate an employee's ROLE or SHORT DESCRIPTION into ${targetLanguage}.
+
+Context:
+This text belongs to an employee/contact card on a company website.
+
+Rules:
+- Use natural, professional language suitable for a company website
+- Keep the meaning fully accurate
+- Do not add or remove information
+- Do not add explanations, comments, labels, or notes
+- Preserve names, phone numbers, email addresses, abbreviations, and other factual details exactly
+- If the original contains a job title or department name, translate it in a professional and natural way
+
+Output:
+Return ONLY the final translated text.`;
+
+    try {
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-5.4',
+        temperature: 0.3,
+        messages: [
+          {
+            role: 'system',
+            content: systemPrompt,
+          },
+          {
+            role: 'user',
+            content: safeText,
+          },
+        ],
+      });
+
+      return response.choices[0]?.message?.content?.trim() || '';
+    } catch (error) {
+      console.error('Error translating employee field:', error);
+      throw new Error('Employee field translation failed');
+    }
+  }
 }

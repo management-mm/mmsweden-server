@@ -26,7 +26,7 @@ export class EmployeesController {
     return this.employeesService.findAll();
   }
   @Post()
-  @UseGuards(AuthGuard())
+  @UseGuards(AuthGuard('jwt'))
   async createProduct(
     @Body()
     employee: CreateEmployeeDto
@@ -34,7 +34,7 @@ export class EmployeesController {
     return this.employeesService.create(employee);
   }
   @Put(':id')
-  @UseGuards(AuthGuard())
+  @UseGuards(AuthGuard('jwt'))
   async updateProduct(
     @Param('id') id: string,
     @Body() employee: UpdateEmployeeDto
@@ -43,7 +43,7 @@ export class EmployeesController {
   }
 
   @Delete(':id')
-  @UseGuards(AuthGuard())
+  @UseGuards(AuthGuard('jwt'))
   async deleteProduct(
     @Param('id')
     id: string
