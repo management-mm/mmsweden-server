@@ -7,6 +7,7 @@ import { TranslationService } from 'src/translation/translation.service';
 
 import { CreateEmployeeDto } from './dto/create-employee';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
+import { UpdateEmployeesOrderDto } from './dto/update-employees-order';
 
 @Injectable()
 export class EmployeesService {
@@ -16,8 +17,21 @@ export class EmployeesService {
     private readonly translationService: TranslationService
   ) {}
 
-  async findAll(): Promise<Employee[]> {
-    return this.employeeModel.find().exec();
+  async findAll() {
+    return this.employeeModel.find().sort({ order: 1 });
+  }
+
+  async updateOrder(dto: UpdateEmployeesOrderDto) {
+    const operations = dto.employees.map(item => ({
+      updateOne: {
+        filter: { _id: item.id },
+        update: { $set: { order: item.order } },
+      },
+    }));
+
+    await this.employeeModel.bulkWrite(operations);
+
+    return { message: 'Employees order updated successfully' };
   }
 
   async create(dto: CreateEmployeeDto): Promise<Employee> {
