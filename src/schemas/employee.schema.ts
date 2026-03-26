@@ -17,6 +17,9 @@ export class Employee {
 
   @Prop()
   additionalInfo?: string;
+
+  @Prop({ required: true, default: 0 })
+  order: number;
 }
 
 export const EmployeeSchema = SchemaFactory.createForClass(Employee);

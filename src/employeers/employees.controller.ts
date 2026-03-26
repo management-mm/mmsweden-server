@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Put,
   Query,
@@ -16,6 +17,7 @@ import { Employee } from 'src/schemas/employee.schema';
 
 import { CreateEmployeeDto } from './dto/create-employee';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
+import { UpdateEmployeesOrderDto } from './dto/update-employees-order';
 import { EmployeesService } from './employees.service';
 
 @Controller('employees')
@@ -24,6 +26,11 @@ export class EmployeesController {
   @Get()
   async getAllProducts(): Promise<Employee[]> {
     return this.employeesService.findAll();
+  }
+
+  @Patch('reorder')
+  updateOrder(@Body() dto: UpdateEmployeesOrderDto) {
+    return this.employeesService.updateOrder(dto);
   }
   @Post()
   @UseGuards(AuthGuard('jwt'))
