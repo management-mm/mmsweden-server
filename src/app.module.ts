@@ -12,7 +12,9 @@ import { IndustryModule } from './industry/industry.module';
 import { MailerModule } from './mailer/mailer.module';
 import { ManufacturerModule } from './manufacturer/manufacturer.module';
 import { OpenAIModule } from './openai/openai.module';
+import { ProductCategoriesModule } from './product-categories/product-categories.module';
 import { ProductModule } from './product/product.module';
+import { SeoCategoriesModule } from './seo-categories/seo-categories.module';
 import { TranslationModule } from './translation/translation.module';
 
 @Module({
@@ -34,6 +36,8 @@ import { TranslationModule } from './translation/translation.module';
     OpenAIModule,
     CountersModule,
     EmployeeModule,
+    SeoCategoriesModule,
+    ProductCategoriesModule,
   ],
   controllers: [],
   providers: [],
