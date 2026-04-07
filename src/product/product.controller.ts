@@ -17,6 +17,7 @@ import { FilesInterceptor } from '@nestjs/platform-express';
 import { Query as ExpressQuery } from 'express-serve-static-core';
 import { OpenAIService } from 'src/openai/openai.service';
 import { Product } from 'src/schemas/product.schema';
+import { ProductSitemapItem } from 'src/types/product-sitemap-item.type';
 
 import { CreateProductDto } from './dto/create-product.dto';
 import { GenerateDescriptionPreviewDto } from './dto/generate-desc-prev-dto';
@@ -29,6 +30,11 @@ export class ProductController {
     private productService: ProductService,
     private readonly openAIService: OpenAIService
   ) {}
+
+  @Get('sitemap')
+  async getProductsForSitemap(): Promise<ProductSitemapItem[]> {
+    return this.productService.getProductsForSitemap();
+  }
 
   @Get()
   async getAllProducts(
