@@ -146,8 +146,7 @@ export class ProductService {
         ? query.subcategorySlug
         : undefined;
 
-    const sort: Record<string, SortOrder> =
-      String(query.sort) === 'latest' ? { createdAt: -1 } : {};
+    const sort: Record<string, SortOrder> = { createdAt: -1, _id: -1 };
 
     function escapeRegex(value: string): string {
       return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
