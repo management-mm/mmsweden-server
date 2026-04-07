@@ -25,6 +25,7 @@ import { Product } from 'src/schemas/product.schema';
 import { SeoCategory } from 'src/schemas/seo-category.schema';
 import { UntranslatedProduct } from 'src/schemas/untranslated-product.schema';
 import { TranslationService } from 'src/translation/translation.service';
+import { ProductSitemapItem } from 'src/types/product-sitemap-item.type';
 
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -86,6 +87,50 @@ export class ProductService {
     if (!otherProductsWithSameManufacturer && product.manufacturer) {
       await this.manufacturerService.deleteByName(product.manufacturer);
     }
+  }
+
+  async getProductsForSitemap(): Promise<ProductSitemapItem[]> {
+    const products = await this.productModel
+      .find({
+        slug: { $exists: true, $ne: '' },
+      })
+      .select('slug updatedAt seoCategoryId seoSubcategoryId')
+      .populate({
+        path: 'seoCategoryId',
+        select: 'slug',
+      })
+      .populate({
+        path: 'seoSubcategoryId',
+        select: 'slug',
+      })
+      .lean();
+
+    return products
+      .map((product: any) => ({
+        slug: product.slug,
+        updatedAt: product.updatedAt,
+        categorySlug:
+          product.seoCategoryId &&
+          typeof product.seoCategoryId === 'object' &&
+          'slug' in product.seoCategoryId
+            ? product.seoCategoryId.slug
+            : undefined,
+        subcategorySlug:
+          product.seoSubcategoryId &&
+          typeof product.seoSubcategoryId === 'object' &&
+          'slug' in product.seoSubcategoryId
+            ? product.seoSubcategoryId.slug
+            : undefined,
+      }))
+      .filter(
+        product =>
+          typeof product.slug === 'string' &&
+          product.slug.trim().length > 0 &&
+          typeof product.categorySlug === 'string' &&
+          product.categorySlug.trim().length > 0 &&
+          typeof product.subcategorySlug === 'string' &&
+          product.subcategorySlug.trim().length > 0
+      );
   }
 
   async findAll(query: Query): Promise<{ products: any[]; total: number }> {
