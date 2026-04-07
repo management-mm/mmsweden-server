@@ -6,7 +6,7 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Query } from 'express-serve-static-core';
 import { Model } from 'mongoose';
-import type { SortOrder } from 'mongoose';
+import type { FilterQuery, SortOrder } from 'mongoose';
 import { ParsedQs } from 'qs';
 import slugify from 'slugify';
 import { CategoryService } from 'src/category/category.service';
@@ -22,6 +22,7 @@ import { Category } from 'src/schemas/category.schema';
 import { Industry } from 'src/schemas/industry.schema';
 import { Manufacturer } from 'src/schemas/manufacturer.schema';
 import { Product } from 'src/schemas/product.schema';
+import { SeoCategory } from 'src/schemas/seo-category.schema';
 import { UntranslatedProduct } from 'src/schemas/untranslated-product.schema';
 import { TranslationService } from 'src/translation/translation.service';
 
@@ -33,6 +34,8 @@ export class ProductService {
   constructor(
     @InjectModel(Product.name)
     private productModel: Model<Product>,
+    @InjectModel(SeoCategory.name)
+    private readonly seoCategoryModel: Model<SeoCategory>,
     private readonly categoryService: CategoryService,
     private readonly manufacturerService: ManufacturerService,
     private readonly industryService: IndustryService,
@@ -85,17 +88,21 @@ export class ProductService {
     }
   }
 
-  async findAll(query: Query): Promise<{ products: Product[]; total: number }> {
+  async findAll(query: Query): Promise<{ products: any[]; total: number }> {
     const perPage = Number(query.perPage) || 16;
     const currentPage = Number(query.page) || 1;
     const skip = perPage * (currentPage - 1);
 
+    const categorySlug =
+      typeof query.categorySlug === 'string' ? query.categorySlug : undefined;
+
+    const subcategorySlug =
+      typeof query.subcategorySlug === 'string'
+        ? query.subcategorySlug
+        : undefined;
+
     const sort: Record<string, SortOrder> =
       String(query.sort) === 'latest' ? { createdAt: -1 } : {};
-
-    const categories = ensureArray(query.category);
-    const manufacturers = ensureArray(query.manufacturer);
-    const industries = ensureArray(query.industry);
 
     function escapeRegex(value: string): string {
       return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -117,10 +124,67 @@ export class ProductService {
       return [];
     }
 
+    const categories = ensureArray(query.category);
+    const manufacturers = ensureArray(query.manufacturer);
+    const industries = ensureArray(query.industry);
+
     const languages = Object.values(LanguageKeys);
     const keyword = query.keyword ? escapeRegex(String(query.keyword)) : '';
 
-    const keywordCondition = query.keyword
+    const filter: FilterQuery<Product> = {};
+
+    if (subcategorySlug) {
+      if (categorySlug) {
+        const parentCategory = await this.seoCategoryModel
+          .findOne({ slug: categorySlug })
+          .select('_id')
+          .lean();
+
+        if (!parentCategory) {
+          throw new NotFoundException('Category not found');
+        }
+
+        const subcategory = await this.seoCategoryModel
+          .findOne({
+            slug: subcategorySlug,
+            parentId: parentCategory._id,
+          })
+          .select('_id')
+          .lean();
+
+        if (!subcategory) {
+          throw new NotFoundException('Subcategory not found');
+        }
+
+        filter.seoCategoryId = parentCategory._id;
+        filter.seoSubcategoryId = subcategory._id;
+      } else {
+        const subcategory = await this.seoCategoryModel
+          .findOne({ slug: subcategorySlug })
+          .select('_id parentId')
+          .lean();
+
+        if (!subcategory) {
+          throw new NotFoundException('Subcategory not found');
+        }
+
+        filter.seoCategoryId = subcategory.parentId;
+        filter.seoSubcategoryId = subcategory._id;
+      }
+    } else if (categorySlug) {
+      const parentCategory = await this.seoCategoryModel
+        .findOne({ slug: categorySlug })
+        .select('_id')
+        .lean();
+
+      if (!parentCategory) {
+        throw new NotFoundException('Category not found');
+      }
+
+      filter.seoCategoryId = parentCategory._id;
+    }
+
+    const keywordCondition = keyword
       ? {
           $or: [
             ...languages.map(lang => ({
@@ -195,7 +259,7 @@ export class ProductService {
     const conditionCondition = query.condition
       ? {
           condition: {
-            $regex: escapeRegex(String(query.condition)),
+            $regex: `^${escapeRegex(String(query.condition))}$`,
             $options: 'i',
           },
         }
@@ -216,38 +280,81 @@ export class ProductService {
         }
       : {};
 
-    const conditionsArray = [
+    const extraConditions = [
       keywordCondition,
       categoryCondition,
       manufacturerCondition,
       industryCondition,
       conditionCondition,
-    ];
+    ].filter(cond => Object.keys(cond).length > 0);
 
-    const nonEmptyConditions = conditionsArray.filter(
-      cond => Object.keys(cond).length > 0
-    );
+    const finalFilter: FilterQuery<Product> =
+      Object.keys(filter).length || extraConditions.length
+        ? {
+            $and: [
+              ...(Object.keys(filter).length ? [filter] : []),
+              ...extraConditions,
+            ],
+          }
+        : {};
 
-    const conditions = nonEmptyConditions.length
-      ? { $and: nonEmptyConditions }
-      : {};
+    const [products, totalProducts] = await Promise.all([
+      this.productModel
+        .find(finalFilter)
+        .populate('seoCategoryId', 'slug')
+        .populate('seoSubcategoryId', 'slug')
+        .populate('productCategoryId', 'name')
+        .limit(perPage)
+        .sort(sort)
+        .skip(skip)
+        .lean(),
+      this.productModel.countDocuments(finalFilter),
+    ]);
 
-    const products = await this.productModel
-      .find(conditions)
-      .limit(perPage)
-      .sort(sort)
-      .skip(skip);
+    const formattedProducts = products.map(product => {
+      const seoCategorySlug =
+        product.seoCategoryId &&
+        typeof product.seoCategoryId === 'object' &&
+        'slug' in product.seoCategoryId
+          ? product.seoCategoryId.slug
+          : null;
 
-    const totalProducts = await this.productModel.countDocuments(conditions);
+      const seoSubcategorySlug =
+        product.seoSubcategoryId &&
+        typeof product.seoSubcategoryId === 'object' &&
+        'slug' in product.seoSubcategoryId
+          ? product.seoSubcategoryId.slug
+          : null;
+
+      const productCategory =
+        product.productCategoryId &&
+        typeof product.productCategoryId === 'object' &&
+        'name' in product.productCategoryId
+          ? product.productCategoryId.name
+          : null;
+
+      return {
+        ...product,
+        seoCategorySlug,
+        seoSubcategorySlug,
+        productCategory,
+        productCategoryId:
+          product.productCategoryId &&
+          typeof product.productCategoryId === 'object' &&
+          '_id' in product.productCategoryId
+            ? product.productCategoryId._id
+            : (product.productCategoryId ?? null),
+      };
+    });
 
     return {
-      products,
+      products: formattedProducts,
       total: totalProducts,
     };
   }
 
-  async findRecommendedProductsBySlug(slug: string): Promise<Product[]> {
-    const product = await this.productModel.findOne({ slug });
+  async findRecommendedProductsBySlug(slug: string): Promise<any[]> {
+    const product = await this.productModel.findOne({ slug }).lean();
 
     if (!product) {
       throw new NotFoundException(`Product with slug "${slug}" not found`);
@@ -255,10 +362,14 @@ export class ProductService {
 
     const { category, industries, manufacturer, _id } = product;
 
-    const categoryCondition = category
+    function escapeRegex(value: string): string {
+      return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    const categoryCondition = category?.en
       ? {
           [`category.${LanguageKeys.EN}`]: {
-            $regex: category.en,
+            $regex: escapeRegex(category.en),
             $options: 'i',
           },
         }
@@ -267,27 +378,28 @@ export class ProductService {
     const manufacturerCondition = manufacturer
       ? {
           manufacturer: {
-            $regex: manufacturer.replace(/\s+/g, '').replace(/[+]/g, '\\+'),
+            $regex: escapeRegex(manufacturer),
             $options: 'i',
           },
         }
       : {};
 
-    const industriesCondition =
-      industries.length !== 0
-        ? {
-            $or: industries.map(industryItem => ({
+    const industriesCondition = industries?.length
+      ? {
+          $or: industries
+            .filter(industryItem => industryItem?.en)
+            .map(industryItem => ({
               industries: {
                 $elemMatch: {
-                  [`${LanguageKeys.EN}`]: {
-                    $regex: industryItem.en,
+                  [LanguageKeys.EN]: {
+                    $regex: escapeRegex(industryItem.en),
                     $options: 'i',
                   },
                 },
               },
             })),
-          }
-        : {};
+        }
+      : {};
 
     const idCondition = { _id: { $ne: _id } };
 
@@ -304,23 +416,65 @@ export class ProductService {
       [categoryCondition, idCondition],
       [industriesCondition, idCondition],
       [manufacturerCondition, idCondition],
-    ];
+    ].map(condition => condition.filter(item => Object.keys(item).length > 0));
 
     const results = await Promise.all(
       searchConditions.map(condition =>
-        this.productModel.find({ $and: condition }).limit(9)
+        this.productModel
+          .find({ $and: condition })
+          .populate('seoCategoryId', 'slug')
+          .populate('seoSubcategoryId', 'slug')
+          .populate('productCategoryId', 'name')
+          .limit(9)
+          .lean()
       )
     );
 
     const allRecommendedProducts = results.flat();
 
-    const uniqueProductsMap = new Map();
+    const uniqueProductsMap = new Map<string, any>();
 
-    allRecommendedProducts.forEach(product => {
-      uniqueProductsMap.set(product._id.toString(), product);
+    allRecommendedProducts.forEach(productItem => {
+      uniqueProductsMap.set(productItem._id.toString(), productItem);
     });
 
-    return Array.from(uniqueProductsMap.values());
+    const uniqueProducts = Array.from(uniqueProductsMap.values()).slice(0, 9);
+
+    return uniqueProducts.map(productItem => {
+      const seoCategorySlug =
+        productItem.seoCategoryId &&
+        typeof productItem.seoCategoryId === 'object' &&
+        'slug' in productItem.seoCategoryId
+          ? productItem.seoCategoryId.slug
+          : null;
+
+      const seoSubcategorySlug =
+        productItem.seoSubcategoryId &&
+        typeof productItem.seoSubcategoryId === 'object' &&
+        'slug' in productItem.seoSubcategoryId
+          ? productItem.seoSubcategoryId.slug
+          : null;
+
+      const productCategory =
+        productItem.productCategoryId &&
+        typeof productItem.productCategoryId === 'object' &&
+        'name' in productItem.productCategoryId
+          ? productItem.productCategoryId.name
+          : null;
+
+      return {
+        ...productItem,
+        seoCategorySlug,
+        seoSubcategorySlug,
+        productCategory,
+        productCategoryId:
+          productItem.productCategoryId &&
+          typeof productItem.productCategoryId === 'object' &&
+          '_id' in productItem.productCategoryId
+            ? productItem.productCategoryId._id
+            : (productItem.productCategoryId ?? null),
+      };
+    });
   }
 
   async create(
@@ -429,14 +583,39 @@ export class ProductService {
     return createdProduct.save();
   }
 
-  async findBySlug(slug: string): Promise<Product> {
-    const product = await this.productModel.findOne({ slug });
+  async findBySlug(slug: string): Promise<any> {
+    const product = await this.productModel
+      .findOne({ slug })
+      .populate('productCategoryId', 'name')
+      .populate('seoCategoryId', 'slug')
+      .populate('seoSubcategoryId', 'slug')
+      .lean();
 
     if (!product) {
       throw new NotFoundException('Product not found');
     }
 
-    return product;
+    return {
+      ...product,
+      seoCategorySlug:
+        product.seoCategoryId &&
+        typeof product.seoCategoryId === 'object' &&
+        'slug' in product.seoCategoryId
+          ? product.seoCategoryId.slug
+          : null,
+      seoSubcategorySlug:
+        product.seoSubcategoryId &&
+        typeof product.seoSubcategoryId === 'object' &&
+        'slug' in product.seoSubcategoryId
+          ? product.seoSubcategoryId.slug
+          : null,
+      productCategory:
+        product.productCategoryId &&
+        typeof product.productCategoryId === 'object' &&
+        'name' in product.productCategoryId
+          ? product.productCategoryId.name
+          : null,
+    };
   }
 
   async uploadProductPhotos(
