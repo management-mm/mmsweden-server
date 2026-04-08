@@ -37,11 +37,6 @@ export class UpdateProductDto {
   @IsString()
   dimensions?: string | null;
 
-  @Transform(({ value }) => tryParseJson(value))
-  @IsMultiLanguageStringOrString()
-  @IsNotEmpty()
-  category!: string | MultiLanguageString;
-
   @IsOptional()
   @IsString()
   manufacturer?: string;
@@ -65,4 +60,16 @@ export class UpdateProductDto {
   @IsOptional()
   @IsString()
   deletionDate?: string | null;
+
+  @IsNotEmpty()
+  @IsString()
+  seoCategoryId: string;
+
+  @IsNotEmpty()
+  @IsString()
+  seoSubcategoryId: string;
+
+  @IsNotEmpty()
+  @IsString()
+  productCategoryId: string;
 }

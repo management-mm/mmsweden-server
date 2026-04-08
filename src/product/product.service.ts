@@ -772,29 +772,31 @@ export class ProductService {
 
     const tryParseJSON = (value: any): any => {
       if (typeof value !== 'string') return value;
-      const t = value.trim();
-      if (!t.startsWith('{') && !t.startsWith('[')) return value;
+
+      const trimmed = value.trim();
+      if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) return value;
+
       try {
-        const parsed = JSON.parse(t);
+        const parsed = JSON.parse(trimmed);
         return typeof parsed === 'object' && parsed !== null ? parsed : value;
       } catch {
         return value;
       }
     };
 
-    const pickText = (v: any): string | null => {
-      if (v === null || v === undefined) return null;
+    const pickText = (value: any): string | null => {
+      if (value === null || value === undefined) return null;
 
-      if (typeof v === 'string') {
-        const s = v.trim();
-        return s ? s : null;
+      if (typeof value === 'string') {
+        const trimmed = value.trim();
+        return trimmed ? trimmed : null;
       }
 
-      if (typeof v === 'object') {
-        const t = v?.[sourceLanguage] ?? v?.en;
-        if (typeof t === 'string') {
-          const s = t.trim();
-          return s ? s : null;
+      if (typeof value === 'object') {
+        const localized = value?.[sourceLanguage] ?? value?.en;
+        if (typeof localized === 'string') {
+          const trimmed = localized.trim();
+          return trimmed ? trimmed : null;
         }
       }
 
@@ -802,7 +804,21 @@ export class ProductService {
     };
 
     const existingProduct = await this.productModel.findById(id);
-    if (!existingProduct) throw new NotFoundException('Product not found');
+    if (!existingProduct) {
+      throw new NotFoundException('Product not found');
+    }
+
+    if (!product.seoCategoryId) {
+      throw new BadRequestException('seoCategoryId is required');
+    }
+
+    if (!product.seoSubcategoryId) {
+      throw new BadRequestException('seoSubcategoryId is required');
+    }
+
+    if (!product.productCategoryId) {
+      throw new BadRequestException('productCategoryId is required');
+    }
 
     const newUrls: string[] = files?.length
       ? await this.uploadProductPhotos(id, files)
@@ -812,37 +828,29 @@ export class ProductService {
     let finalPhotos: string[] = [];
 
     if (queue.length) {
-      let j = 0;
+      let fileIndex = 0;
+
       finalPhotos = queue
         .map(token => {
           if (token === 'file') {
-            const u = newUrls[j];
-            j++;
-            return u;
+            const nextUrl = newUrls[fileIndex];
+            fileIndex += 1;
+            return nextUrl;
           }
+
           return token;
         })
-        .filter((u): u is string => !!u);
+        .filter((url): url is string => Boolean(url));
     } else {
       finalPhotos = [...(existingProduct.photos ?? []), ...newUrls];
     }
+
     const rawName = tryParseJSON(product.name);
     const rawDescription = tryParseJSON(product.description);
-    const rawCategory = tryParseJSON(product.category);
-
-    const categoryText = pickText(rawCategory);
-    if (!categoryText) {
-      throw new BadRequestException('Category is required');
-    }
 
     const manufacturerText = pickText(product.manufacturer);
     const industriesArray = tryParseArrayCsv(product.industries).filter(
       Boolean
-    );
-
-    const category = await this.categoryService.findOrCreate(
-      categoryText,
-      sourceLanguage
     );
 
     const manufacturer = manufacturerText
@@ -858,6 +866,7 @@ export class ProductService {
 
     if (shouldTranslateName) {
       const nameToTranslate = pickText(rawName);
+
       if (nameToTranslate) {
         nameTranslations = await this.translationService.translateText(
           nameToTranslate,
@@ -877,24 +886,35 @@ export class ProductService {
     const finalDescription = descriptionTranslations ?? rawDescription;
 
     let deletionDate: Date | null = null;
-    if (product.deletionDate === 'null') deletionDate = null;
-    else if (product.deletionDate)
+
+    if (product.deletionDate === 'null') {
+      deletionDate = null;
+    } else if (product.deletionDate) {
       deletionDate = new Date(product.deletionDate);
-    if (deletionDate) deletionDate.setHours(0, 0, 0, 0);
+    }
+
+    if (deletionDate) {
+      deletionDate.setHours(0, 0, 0, 0);
+    }
 
     const nameForSlug = pickText(finalName);
     let newSlug = existingProduct.slug;
 
     if (nameForSlug) {
       const baseSlug = slugify(nameForSlug, { lower: true, strict: true });
+
       if (baseSlug && baseSlug !== existingProduct.slug) {
         newSlug = baseSlug;
         let counter = 1;
+
         while (
-          await this.productModel.findOne({ slug: newSlug, _id: { $ne: id } })
+          await this.productModel.findOne({
+            slug: newSlug,
+            _id: { $ne: id },
+          })
         ) {
           newSlug = `${baseSlug}-${counter}`;
-          counter++;
+          counter += 1;
         }
       }
     }
@@ -904,23 +924,33 @@ export class ProductService {
       name: finalName,
       idNumber: product.idNumber,
       description: finalDescription,
-      category: category.name,
       manufacturer: manufacturer ? manufacturer.name : null,
       industries: industries.map(ind => ind.name),
       photos: finalPhotos,
       condition: product.condition,
       deletionDate,
+      seoCategoryId: product.seoCategoryId,
+      seoSubcategoryId: product.seoSubcategoryId,
+      productCategoryId: product.productCategoryId,
     };
 
-    if (product.dimensions !== undefined)
+    if (product.dimensions !== undefined) {
       setData.dimensions = product.dimensions;
-    if (product.video !== undefined) setData.video = product.video;
+    }
+
+    if (product.video !== undefined) {
+      setData.video = product.video;
+    }
 
     const result = await this.productModel.findByIdAndUpdate(
       id,
       { $set: setData },
       { new: true, runValidators: true }
     );
+
+    if (!result) {
+      throw new NotFoundException('Product not found after update');
+    }
 
     return result;
   }
