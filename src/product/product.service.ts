@@ -552,6 +552,18 @@ export class ProductService {
       }
     }
 
+    if (!product.seoCategoryId) {
+      throw new BadRequestException('seoCategoryId is required');
+    }
+
+    if (!product.seoSubcategoryId) {
+      throw new BadRequestException('seoSubcategoryId is required');
+    }
+
+    if (!product.productCategoryId) {
+      throw new BadRequestException('productCategoryId is required');
+    }
+
     const industriesArray: string[] = product.industries
       ? product.industries
           .split(',')
@@ -571,15 +583,6 @@ export class ProductService {
       sourceLanguage
     );
 
-    if (product.category) {
-      category = await this.categoryService.findOrCreate(
-        product.category,
-        sourceLanguage
-      );
-    } else {
-      throw new BadRequestException('Category is required');
-    }
-
     if (product.manufacturer) {
       manufacturer = await this.manufacturerService.findOrCreate(
         product.manufacturer
@@ -592,9 +595,16 @@ export class ProductService {
         sourceLanguage
       );
     }
+    const seoSubcategory = await this.seoCategoryModel.findById(
+      product.seoSubcategoryId
+    );
 
-    const categoryFolder = this.sanitizeFolderName(category.name.en);
-    const folderPath = `products/${categoryFolder}/${idNumber}`;
+    if (!seoSubcategory) {
+      throw new BadRequestException('Seo subcategory not found');
+    }
+    const subcategoryFolder = this.sanitizeFolderName(seoSubcategory.name.en);
+
+    const folderPath = `products/${subcategoryFolder}/${idNumber}`;
 
     for (const file of files) {
       const uploadedPhoto = await this.cloudinaryService.uploadImage(
@@ -617,11 +627,13 @@ export class ProductService {
       name: nameTranslations ?? product.name,
       idNumber,
       description: descriptionTranslations,
-      category: category.name,
       manufacturer: manufacturer ? manufacturer.name : null,
       industries: industries.map(industry => industry.name),
       photos,
       video: product.video ?? null,
+      seoCategoryId: product.seoCategoryId,
+      seoSubcategoryId: product.seoSubcategoryId,
+      productCategoryId: product.productCategoryId,
     });
 
     return createdProduct.save();

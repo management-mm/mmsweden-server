@@ -44,10 +44,6 @@ export class CreateProductDto {
   @IsString()
   video?: string;
 
-  @IsNotEmpty()
-  @IsString()
-  category: string;
-
   @IsOptional()
   @IsString()
   manufacturer?: string;
@@ -59,4 +55,16 @@ export class CreateProductDto {
   @IsNotEmpty()
   @IsEnum(['used', 'new'])
   condition: 'used' | 'new';
+
+  @IsNotEmpty()
+  @IsString()
+  seoCategoryId: string;
+
+  @IsNotEmpty()
+  @IsString()
+  seoSubcategoryId: string;
+
+  @IsNotEmpty()
+  @IsString()
+  productCategoryId: string;
 }
