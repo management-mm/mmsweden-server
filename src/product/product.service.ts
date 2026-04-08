@@ -642,34 +642,68 @@ export class ProductService {
   async findBySlug(slug: string): Promise<any> {
     const product = await this.productModel
       .findOne({ slug })
-      .populate('productCategoryId', 'name')
-      .populate('seoCategoryId', 'slug')
-      .populate('seoSubcategoryId', 'slug')
+      .populate('productCategoryId', '_id name')
+      .populate('seoCategoryId', '_id slug')
+      .populate('seoSubcategoryId', '_id slug')
       .lean();
 
     if (!product) {
       throw new NotFoundException('Product not found');
     }
 
+    const rawSeoCategoryId = product.seoCategoryId;
+    const rawSeoSubcategoryId = product.seoSubcategoryId;
+    const rawProductCategoryId = product.productCategoryId;
+
     return {
       ...product,
+
+      seoCategoryId:
+        rawSeoCategoryId &&
+        typeof rawSeoCategoryId === 'object' &&
+        '_id' in rawSeoCategoryId
+          ? String(rawSeoCategoryId._id)
+          : rawSeoCategoryId
+            ? String(rawSeoCategoryId)
+            : null,
+
       seoCategorySlug:
-        product.seoCategoryId &&
-        typeof product.seoCategoryId === 'object' &&
-        'slug' in product.seoCategoryId
-          ? product.seoCategoryId.slug
+        rawSeoCategoryId &&
+        typeof rawSeoCategoryId === 'object' &&
+        'slug' in rawSeoCategoryId
+          ? rawSeoCategoryId.slug
           : null,
+
+      seoSubcategoryId:
+        rawSeoSubcategoryId &&
+        typeof rawSeoSubcategoryId === 'object' &&
+        '_id' in rawSeoSubcategoryId
+          ? String(rawSeoSubcategoryId._id)
+          : rawSeoSubcategoryId
+            ? String(rawSeoSubcategoryId)
+            : null,
+
       seoSubcategorySlug:
-        product.seoSubcategoryId &&
-        typeof product.seoSubcategoryId === 'object' &&
-        'slug' in product.seoSubcategoryId
-          ? product.seoSubcategoryId.slug
+        rawSeoSubcategoryId &&
+        typeof rawSeoSubcategoryId === 'object' &&
+        'slug' in rawSeoSubcategoryId
+          ? rawSeoSubcategoryId.slug
           : null,
+
+      productCategoryId:
+        rawProductCategoryId &&
+        typeof rawProductCategoryId === 'object' &&
+        '_id' in rawProductCategoryId
+          ? String(rawProductCategoryId._id)
+          : rawProductCategoryId
+            ? String(rawProductCategoryId)
+            : null,
+
       productCategory:
-        product.productCategoryId &&
-        typeof product.productCategoryId === 'object' &&
-        'name' in product.productCategoryId
-          ? product.productCategoryId.name
+        rawProductCategoryId &&
+        typeof rawProductCategoryId === 'object' &&
+        'name' in rawProductCategoryId
+          ? rawProductCategoryId.name
           : null,
     };
   }
