@@ -109,13 +109,13 @@ export class ProductService {
       .map((product: any) => ({
         slug: product.slug,
         updatedAt: product.updatedAt,
-        categorySlug:
+        seoCategorySlug:
           product.seoCategoryId &&
           typeof product.seoCategoryId === 'object' &&
           'slug' in product.seoCategoryId
             ? product.seoCategoryId.slug
             : undefined,
-        subcategorySlug:
+        seoSubcategorySlug:
           product.seoSubcategoryId &&
           typeof product.seoSubcategoryId === 'object' &&
           'slug' in product.seoSubcategoryId
@@ -126,13 +126,12 @@ export class ProductService {
         product =>
           typeof product.slug === 'string' &&
           product.slug.trim().length > 0 &&
-          typeof product.categorySlug === 'string' &&
-          product.categorySlug.trim().length > 0 &&
-          typeof product.subcategorySlug === 'string' &&
-          product.subcategorySlug.trim().length > 0
+          typeof product.seoCategorySlug === 'string' &&
+          product.seoCategorySlug.trim().length > 0 &&
+          typeof product.seoSubcategorySlug === 'string' &&
+          product.seoSubcategorySlug.trim().length > 0
       );
   }
-
   async findAll(query: Query): Promise<{ products: any[]; total: number }> {
     const perPage = Number(query.perPage) || 16;
     const currentPage = Number(query.page) || 1;
