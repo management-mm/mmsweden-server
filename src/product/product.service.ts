@@ -966,8 +966,12 @@ export class ProductService {
       return null;
     }
 
-    await this.handleProductDependencies(product);
-    await this.deleteProductFolder(product);
+    try {
+      await this.handleProductDependencies(product);
+      await this.deleteProductFolder(product);
+    } catch (error) {
+      console.error('Post-delete cleanup failed:', error);
+    }
 
     return product;
   }
