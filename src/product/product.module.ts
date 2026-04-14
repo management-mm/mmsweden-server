@@ -7,6 +7,10 @@ import { CountersModule } from 'src/counters/counters.module';
 import { IndustryModule } from 'src/industry/industry.module';
 import { ManufacturerModule } from 'src/manufacturer/manufacturer.module';
 import { OpenAIModule } from 'src/openai/openai.module';
+import {
+  ProductCategory,
+  ProductCategorySchema,
+} from 'src/schemas/product-category.schema';
 import { ProductSchema } from 'src/schemas/product.schema';
 import { Product } from 'src/schemas/product.schema';
 import {
@@ -33,6 +37,7 @@ import { ProductService } from './product.service';
     MongooseModule.forFeature([
       { name: Product.name, schema: ProductSchema },
       { name: SeoCategory.name, schema: SeoCategorySchema },
+      { name: ProductCategory.name, schema: ProductCategorySchema },
     ]),
   ],
   controllers: [ProductController],

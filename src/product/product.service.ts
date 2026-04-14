@@ -21,6 +21,7 @@ import { ManufacturerService } from 'src/manufacturer/manufacturer.service';
 import { Category } from 'src/schemas/category.schema';
 import { Industry } from 'src/schemas/industry.schema';
 import { Manufacturer } from 'src/schemas/manufacturer.schema';
+import { ProductCategory } from 'src/schemas/product-category.schema';
 import { Product } from 'src/schemas/product.schema';
 import { SeoCategory } from 'src/schemas/seo-category.schema';
 import { UntranslatedProduct } from 'src/schemas/untranslated-product.schema';
@@ -37,6 +38,8 @@ export class ProductService {
     private productModel: Model<Product>,
     @InjectModel(SeoCategory.name)
     private readonly seoCategoryModel: Model<SeoCategory>,
+    @InjectModel(ProductCategory.name)
+    private readonly productCategoryModel: Model<ProductCategory>,
     private readonly categoryService: CategoryService,
     private readonly manufacturerService: ManufacturerService,
     private readonly industryService: IndustryService,
@@ -46,10 +49,19 @@ export class ProductService {
   ) {}
 
   private async deleteProductFolder(product: Product): Promise<void> {
-    const { category, idNumber } = product;
-    const categoryFolder = category.en.replace(/ /g, '-').toLowerCase();
+    const { productCategoryId, idNumber } = product;
 
-    await this.cloudinaryService.deleteFolder(categoryFolder, idNumber);
+    const category = await this.productCategoryModel
+      .findById(productCategoryId)
+      .select('slug');
+
+    if (!category) {
+      throw new NotFoundException(
+        `Category with id ${productCategoryId} not found`
+      );
+    }
+
+    await this.cloudinaryService.deleteFolder(category.slug, idNumber);
   }
 
   private sanitizeFolderName(str: string): string {
@@ -735,17 +747,16 @@ export class ProductService {
 
   async deleteExpiredProducts(): Promise<void> {
     const now = new Date();
-
     now.setHours(0, 0, 0, 0);
 
     const productsToDelete = await this.productModel.find({
       deletionDate: { $lte: now },
     });
 
-    productsToDelete.forEach(async product => {
+    for (const product of productsToDelete) {
       await this.handleProductDependencies(product);
       await this.deleteProductFolder(product);
-    });
+    }
 
     await this.productModel.deleteMany({
       deletionDate: { $lte: now },
