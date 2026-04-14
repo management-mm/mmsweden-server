@@ -18,11 +18,12 @@ import {
 import { CountersService } from 'src/counters/counters.service';
 import { IndustryService } from 'src/industry/industry.service';
 import { ManufacturerService } from 'src/manufacturer/manufacturer.service';
+import { ProductCategoriesService } from 'src/product-categories/product-categories.service';
 import { Category } from 'src/schemas/category.schema';
 import { Industry } from 'src/schemas/industry.schema';
 import { Manufacturer } from 'src/schemas/manufacturer.schema';
 import { ProductCategory } from 'src/schemas/product-category.schema';
-import { Product } from 'src/schemas/product.schema';
+import { Product, ProductDocument } from 'src/schemas/product.schema';
 import { SeoCategory } from 'src/schemas/seo-category.schema';
 import { UntranslatedProduct } from 'src/schemas/untranslated-product.schema';
 import { TranslationService } from 'src/translation/translation.service';
@@ -40,7 +41,6 @@ export class ProductService {
     private readonly seoCategoryModel: Model<SeoCategory>,
     @InjectModel(ProductCategory.name)
     private readonly productCategoryModel: Model<ProductCategory>,
-    private readonly categoryService: CategoryService,
     private readonly manufacturerService: ManufacturerService,
     private readonly industryService: IndustryService,
     private readonly translationService: TranslationService,
@@ -74,26 +74,19 @@ export class ProductService {
       .replace(/^-|-$/g, '');
   }
 
-  private async handleProductDependencies(product: Product): Promise<void> {
-    const otherProductsWithSameCategory = await this.productModel.findOne({
-      [`category.${LanguageKeys.EN}`]: {
-        $regex: product.category.en,
-        $options: 'i',
-      },
-    });
-
+  private async handleProductDependencies(
+    product: ProductDocument
+  ): Promise<void> {
     let otherProductsWithSameManufacturer: Product | null = null;
+
     if (product.manufacturer) {
       otherProductsWithSameManufacturer = await this.productModel.findOne({
-        ['manufacturer']: {
-          $regex: product.manufacturer,
+        _id: { $ne: product._id },
+        manufacturer: {
+          $regex: `^${product.manufacturer}$`,
           $options: 'i',
         },
       });
-    }
-
-    if (!otherProductsWithSameCategory) {
-      await this.categoryService.deleteByName(product.category);
     }
 
     if (!otherProductsWithSameManufacturer && product.manufacturer) {
@@ -144,6 +137,7 @@ export class ProductService {
           product.seoSubcategorySlug.trim().length > 0
       );
   }
+
   async findAll(query: Query): Promise<{ products: any[]; total: number }> {
     const perPage = Number(query.perPage) || 16;
     const currentPage = Number(query.page) || 1;
@@ -967,8 +961,12 @@ export class ProductService {
 
   async deleteById(id: string): Promise<Product | null> {
     const product = await this.productModel.findByIdAndDelete(id);
-    await this.handleProductDependencies(product);
 
+    if (!product) {
+      return null;
+    }
+
+    await this.handleProductDependencies(product);
     await this.deleteProductFolder(product);
 
     return product;

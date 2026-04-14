@@ -1,6 +1,8 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
+import { HydratedDocument, Types } from 'mongoose';
 import { MultiLanguageString } from 'src/common/types/language.types';
+
+export type ProductDocument = HydratedDocument<Product>;
 
 @Schema({
   timestamps: true,
