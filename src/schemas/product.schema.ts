@@ -62,7 +62,7 @@ export class Product {
 
   @Prop({
     type: Types.ObjectId,
-    ref: 'SeoSubcategory',
+    ref: 'SeoСategory',
     default: null,
     index: true,
   })
