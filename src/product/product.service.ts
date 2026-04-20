@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Query } from 'express-serve-static-core';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import type { FilterQuery, SortOrder } from 'mongoose';
 import { ParsedQs } from 'qs';
 import slugify from 'slugify';
@@ -636,9 +636,15 @@ export class ProductService {
       industries: industries.map(industry => industry.name),
       photos,
       video: product.video ?? null,
-      seoCategoryId: product.seoCategoryId,
-      seoSubcategoryId: product.seoSubcategoryId,
-      productCategoryId: product.productCategoryId,
+      seoCategoryId: product.seoCategoryId
+        ? new Types.ObjectId(product.seoCategoryId)
+        : null,
+      seoSubcategoryId: product.seoSubcategoryId
+        ? new Types.ObjectId(product.seoSubcategoryId)
+        : null,
+      productCategoryId: product.productCategoryId
+        ? new Types.ObjectId(product.productCategoryId)
+        : null,
     });
 
     return createdProduct.save();
@@ -933,9 +939,15 @@ export class ProductService {
       photos: finalPhotos,
       condition: product.condition,
       deletionDate,
-      seoCategoryId: product.seoCategoryId,
-      seoSubcategoryId: product.seoSubcategoryId,
-      productCategoryId: product.productCategoryId,
+      seoCategoryId: product.seoCategoryId
+        ? new Types.ObjectId(product.seoCategoryId)
+        : null,
+      seoSubcategoryId: product.seoSubcategoryId
+        ? new Types.ObjectId(product.seoSubcategoryId)
+        : null,
+      productCategoryId: product.productCategoryId
+        ? new Types.ObjectId(product.productCategoryId)
+        : null,
     };
 
     if (product.dimensions !== undefined) {
