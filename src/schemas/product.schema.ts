@@ -47,22 +47,22 @@ export class Product {
   @Prop({
     type: Types.ObjectId,
     ref: 'ProductCategory',
-    default: null,
+    required: true,
     index: true,
   })
-  productCategoryId?: Types.ObjectId | null;
+  productCategoryId: Types.ObjectId;
 
   @Prop({
     type: Types.ObjectId,
     ref: 'SeoCategory',
-    default: null,
+    required: true,
     index: true,
   })
-  seoCategoryId?: Types.ObjectId | null;
+  seoCategoryId: Types.ObjectId;
 
   @Prop({
     type: Types.ObjectId,
-    ref: 'SeoCategory',
+    ref: 'SeoSubcategory',
     default: null,
     index: true,
   })
