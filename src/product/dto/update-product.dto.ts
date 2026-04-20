@@ -1,5 +1,12 @@
 import { Transform } from 'class-transformer';
-import { IsIn, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import {
+  IsIn,
+  IsMongoId,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
+import { Types } from 'mongoose';
 import { MultiLanguageString } from 'src/common/types/language.types';
 import { IsMultiLanguageStringOrString } from 'src/common/validators/IsMultiLanguageStringOrString';
 
@@ -62,14 +69,17 @@ export class UpdateProductDto {
   deletionDate?: string | null;
 
   @IsNotEmpty()
-  @IsString()
-  seoCategoryId: string;
+  @IsMongoId()
+  @Transform(({ value }) => new Types.ObjectId(value as string))
+  seoCategoryId: Types.ObjectId;
 
   @IsNotEmpty()
-  @IsString()
-  seoSubcategoryId: string;
+  @IsMongoId()
+  @Transform(({ value }) => new Types.ObjectId(value as string))
+  seoSubcategoryId: Types.ObjectId;
 
   @IsNotEmpty()
-  @IsString()
-  productCategoryId: string;
+  @IsMongoId()
+  @Transform(({ value }) => new Types.ObjectId(value as string))
+  productCategoryId: Types.ObjectId;
 }

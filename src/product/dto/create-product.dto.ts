@@ -1,12 +1,13 @@
 import { Transform } from 'class-transformer';
 import {
-  IsArray,
   IsBoolean,
   IsEnum,
+  IsMongoId,
   IsNotEmpty,
   IsOptional,
   IsString,
 } from 'class-validator';
+import { Types } from 'mongoose';
 
 export class CreateProductDto {
   @IsOptional()
@@ -57,14 +58,17 @@ export class CreateProductDto {
   condition: 'used' | 'new';
 
   @IsNotEmpty()
-  @IsString()
-  seoCategoryId: string;
+  @IsMongoId()
+  @Transform(({ value }) => new Types.ObjectId(value as string))
+  seoCategoryId: Types.ObjectId;
 
   @IsNotEmpty()
-  @IsString()
-  seoSubcategoryId: string;
+  @IsMongoId()
+  @Transform(({ value }) => new Types.ObjectId(value as string))
+  seoSubcategoryId: Types.ObjectId;
 
   @IsNotEmpty()
-  @IsString()
-  productCategoryId: string;
+  @IsMongoId()
+  @Transform(({ value }) => new Types.ObjectId(value as string))
+  productCategoryId: Types.ObjectId;
 }
