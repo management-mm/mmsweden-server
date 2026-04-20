@@ -2,6 +2,9 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
 import { MultiLanguageString } from 'src/common/types/language.types';
 
+import { ProductCategory } from './product-category.schema';
+import { SeoCategory } from './seo-category.schema';
+
 export type ProductDocument = HydratedDocument<Product>;
 
 @Schema({
@@ -46,27 +49,27 @@ export class Product {
 
   @Prop({
     type: Types.ObjectId,
-    ref: 'ProductCategory',
-    required: true,
+    ref: SeoCategory.name,
+    default: null,
     index: true,
   })
-  productCategoryId: Types.ObjectId;
+  seoCategoryId?: Types.ObjectId | null;
 
   @Prop({
     type: Types.ObjectId,
-    ref: 'SeoCategory',
-    required: true,
-    index: true,
-  })
-  seoCategoryId: Types.ObjectId;
-
-  @Prop({
-    type: Types.ObjectId,
-    ref: 'SeoСategory',
+    ref: SeoCategory.name,
     default: null,
     index: true,
   })
   seoSubcategoryId?: Types.ObjectId | null;
+
+  @Prop({
+    type: Types.ObjectId,
+    ref: ProductCategory.name,
+    default: null,
+    index: true,
+  })
+  productCategoryId?: Types.ObjectId | null;
 }
 
 export const ProductSchema = SchemaFactory.createForClass(Product);
