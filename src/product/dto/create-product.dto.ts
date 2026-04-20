@@ -59,16 +59,13 @@ export class CreateProductDto {
 
   @IsNotEmpty()
   @IsMongoId()
-  @Transform(({ value }) => new Types.ObjectId(value as string))
-  seoCategoryId: Types.ObjectId;
+  seoCategoryId: string;
 
   @IsNotEmpty()
   @IsMongoId()
-  @Transform(({ value }) => new Types.ObjectId(value as string))
-  seoSubcategoryId: Types.ObjectId;
+  seoSubcategoryId: string;
 
   @IsNotEmpty()
   @IsMongoId()
-  @Transform(({ value }) => new Types.ObjectId(value as string))
-  productCategoryId: Types.ObjectId;
+  productCategoryId: string;
 }
