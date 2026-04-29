@@ -68,4 +68,8 @@ export class CreateProductDto {
   @IsNotEmpty()
   @IsMongoId()
   productCategoryId: string;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
 }

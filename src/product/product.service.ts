@@ -537,7 +537,6 @@ export class ProductService {
     const photos: string[] = [];
     let nameTranslations: MultiLanguageString | undefined;
 
-    let category: Category | null = null;
     let manufacturer: Manufacturer | null = null;
     let industries: Industry[] = [];
 
@@ -645,6 +644,7 @@ export class ProductService {
       productCategoryId: product.productCategoryId
         ? new Types.ObjectId(product.productCategoryId)
         : null,
+      notes: product.notes ?? null,
     });
 
     return createdProduct.save();
@@ -948,6 +948,7 @@ export class ProductService {
       productCategoryId: product.productCategoryId
         ? new Types.ObjectId(product.productCategoryId)
         : null,
+      notes: product.notes ?? null,
     };
 
     if (product.dimensions !== undefined) {
