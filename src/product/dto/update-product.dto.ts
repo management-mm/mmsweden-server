@@ -79,4 +79,8 @@ export class UpdateProductDto {
   @IsNotEmpty()
   @IsMongoId()
   productCategoryId: string;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
 }

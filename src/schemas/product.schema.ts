@@ -70,6 +70,9 @@ export class Product {
     index: true,
   })
   productCategoryId?: Types.ObjectId | null;
+
+  @Prop({ type: String })
+  notes: string;
 }
 
 export const ProductSchema = SchemaFactory.createForClass(Product);
