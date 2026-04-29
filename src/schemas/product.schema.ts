@@ -73,6 +73,9 @@ export class Product {
 
   @Prop({ type: String })
   notes: string;
+
+  @Prop({ type: Boolean })
+  isDraft?: boolean;
 }
 
 export const ProductSchema = SchemaFactory.createForClass(Product);

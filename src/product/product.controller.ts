@@ -7,7 +7,6 @@ import {
   Post,
   Put,
   Query,
-  Req,
   UploadedFiles,
   UseGuards,
   UseInterceptors,
@@ -27,7 +26,7 @@ import { ProductService } from './product.service';
 @Controller('products')
 export class ProductController {
   constructor(
-    private productService: ProductService,
+    private readonly productService: ProductService,
     private readonly openAIService: OpenAIService
   ) {}
 
@@ -38,10 +37,17 @@ export class ProductController {
 
   @Get()
   async getAllProducts(
-    @Query()
-    query: ExpressQuery
+    @Query() query: ExpressQuery
   ): Promise<{ products: Product[]; total: number }> {
-    return this.productService.findAll(query);
+    return this.productService.findAll(query, { isAdmin: false });
+  }
+
+  @Get('admin')
+  @UseGuards(AuthGuard('jwt'))
+  async getAllProductsAdmin(
+    @Query() query: ExpressQuery
+  ): Promise<{ products: Product[]; total: number }> {
+    return this.productService.findAll(query, { isAdmin: true });
   }
 
   @Get('by-slug/:slug')
@@ -57,21 +63,18 @@ export class ProductController {
   }
 
   @Post()
-  @UseGuards(AuthGuard())
+  @UseGuards(AuthGuard('jwt'))
   @UseInterceptors(FilesInterceptor('photos'))
   async createProduct(
-    @Query()
-    query: ExpressQuery,
-    @Body()
-    product: CreateProductDto,
-    @UploadedFiles()
-    files: Express.Multer.File[]
+    @Query() query: ExpressQuery,
+    @Body() product: CreateProductDto,
+    @UploadedFiles() files: Express.Multer.File[]
   ): Promise<Product> {
     return this.productService.create(product, query, files);
   }
 
   @Put(':id')
-  @UseGuards(AuthGuard())
+  @UseGuards(AuthGuard('jwt'))
   @UseInterceptors(FilesInterceptor('photos'))
   async updateProduct(
     @Param('id') id: string,
@@ -83,7 +86,7 @@ export class ProductController {
   }
 
   @Post('description/ai')
-  @UseGuards(AuthGuard())
+  @UseGuards(AuthGuard('jwt'))
   async regenerateDescriptionWithAI(
     @Body() dto: GenerateDescriptionPreviewDto
   ) {
@@ -91,11 +94,8 @@ export class ProductController {
   }
 
   @Delete(':id')
-  @UseGuards(AuthGuard())
-  async deleteProduct(
-    @Param('id')
-    id: string
-  ): Promise<Product> {
+  @UseGuards(AuthGuard('jwt'))
+  async deleteProduct(@Param('id') id: string): Promise<Product> {
     return this.productService.deleteById(id);
   }
 }
