@@ -138,7 +138,12 @@ export class ProductService {
       );
   }
 
-  async findAll(query: Query): Promise<{ products: any[]; total: number }> {
+  async findAll(
+    query: Query,
+    options?: { isAdmin?: boolean }
+  ): Promise<{ products: any[]; total: number }> {
+    const isAdmin = options?.isAdmin === true;
+
     const perPage = Number(query.perPage) || 16;
     const currentPage = Number(query.page) || 1;
     const skip = perPage * (currentPage - 1);
@@ -161,15 +166,10 @@ export class ProductService {
       input: string | string[] | ParsedQs | ParsedQs[] | undefined
     ): string[] {
       if (!input) return [];
-
       if (Array.isArray(input)) {
         return input.filter((item): item is string => typeof item === 'string');
       }
-
-      if (typeof input === 'string') {
-        return [input];
-      }
-
+      if (typeof input === 'string') return [input];
       return [];
     }
 
@@ -177,10 +177,18 @@ export class ProductService {
     const manufacturers = ensureArray(query.manufacturer);
     const industries = ensureArray(query.industry);
 
+    const hasDeletionDate = query.hasDeletionDate === 'true';
+    const isDraft = query.isDraft === 'true';
+    const hasNotes = query.hasNotes === 'true';
+
     const languages = Object.values(LanguageKeys);
     const keyword = query.keyword ? escapeRegex(String(query.keyword)) : '';
 
     const filter: FilterQuery<Product> = {};
+
+    if (!isAdmin) {
+      filter.isDraft = { $ne: true };
+    }
 
     if (subcategorySlug) {
       if (categorySlug) {
@@ -189,9 +197,7 @@ export class ProductService {
           .select('_id')
           .lean();
 
-        if (!parentCategory) {
-          throw new NotFoundException('Category not found');
-        }
+        if (!parentCategory) throw new NotFoundException('Category not found');
 
         const subcategory = await this.seoCategoryModel
           .findOne({
@@ -201,9 +207,7 @@ export class ProductService {
           .select('_id')
           .lean();
 
-        if (!subcategory) {
-          throw new NotFoundException('Subcategory not found');
-        }
+        if (!subcategory) throw new NotFoundException('Subcategory not found');
 
         filter.seoCategoryId = parentCategory._id;
         filter.seoSubcategoryId = subcategory._id;
@@ -213,9 +217,7 @@ export class ProductService {
           .select('_id parentId')
           .lean();
 
-        if (!subcategory) {
-          throw new NotFoundException('Subcategory not found');
-        }
+        if (!subcategory) throw new NotFoundException('Subcategory not found');
 
         filter.seoCategoryId = subcategory.parentId;
         filter.seoSubcategoryId = subcategory._id;
@@ -226,9 +228,7 @@ export class ProductService {
         .select('_id')
         .lean();
 
-      if (!parentCategory) {
-        throw new NotFoundException('Category not found');
-      }
+      if (!parentCategory) throw new NotFoundException('Category not found');
 
       filter.seoCategoryId = parentCategory._id;
     }
@@ -237,48 +237,19 @@ export class ProductService {
       ? {
           $or: [
             ...languages.map(lang => ({
-              [`name.${lang}`]: {
-                $regex: keyword,
-                $options: 'i',
-              },
+              [`name.${lang}`]: { $regex: keyword, $options: 'i' },
             })),
-            {
-              name: {
-                $regex: keyword,
-                $options: 'i',
-              },
-            },
-            {
-              idNumber: {
-                $regex: `^${keyword}`,
-                $options: 'i',
-              },
-            },
+            { name: { $regex: keyword, $options: 'i' } },
+            { idNumber: { $regex: `^${keyword}`, $options: 'i' } },
             ...languages.map(lang => ({
-              [`category.${lang}`]: {
-                $regex: keyword,
-                $options: 'i',
-              },
+              [`category.${lang}`]: { $regex: keyword, $options: 'i' },
             })),
-            {
-              manufacturer: {
-                $regex: keyword,
-                $options: 'i',
-              },
-            },
-            {
-              condition: {
-                $regex: keyword,
-                $options: 'i',
-              },
-            },
+            { manufacturer: { $regex: keyword, $options: 'i' } },
+            { condition: { $regex: keyword, $options: 'i' } },
             ...languages.map(lang => ({
               industries: {
                 $elemMatch: {
-                  [lang]: {
-                    $regex: keyword,
-                    $options: 'i',
-                  },
+                  [lang]: { $regex: keyword, $options: 'i' },
                 },
               },
             })),
@@ -329,12 +300,30 @@ export class ProductService {
         }
       : {};
 
+    const deletionDateCondition =
+      isAdmin && hasDeletionDate ? { deletionDate: { $ne: null } } : {};
+
+    const draftCondition = isAdmin && isDraft ? { isDraft: true } : {};
+
+    const notesCondition =
+      isAdmin && hasNotes
+        ? {
+            notes: {
+              $exists: true,
+              $nin: [null, ''],
+            },
+          }
+        : {};
+
     const extraConditions = [
       keywordCondition,
       categoryCondition,
       manufacturerCondition,
       industryCondition,
       conditionCondition,
+      deletionDateCondition,
+      draftCondition,
+      notesCondition,
     ].filter(cond => Object.keys(cond).length > 0);
 
     const finalFilter: FilterQuery<Product> =
@@ -347,16 +336,19 @@ export class ProductService {
           }
         : {};
 
+    const productQuery = this.productModel
+      .find(finalFilter)
+      .select(isAdmin ? '' : '-notes')
+      .populate('seoCategoryId', 'slug')
+      .populate('seoSubcategoryId', 'slug')
+      .populate('productCategoryId', 'name')
+      .limit(perPage)
+      .sort(sort)
+      .skip(skip)
+      .lean();
+
     const [products, totalProducts] = await Promise.all([
-      this.productModel
-        .find(finalFilter)
-        .populate('seoCategoryId', 'slug')
-        .populate('seoSubcategoryId', 'slug')
-        .populate('productCategoryId', 'name')
-        .limit(perPage)
-        .sort(sort)
-        .skip(skip)
-        .lean(),
+      productQuery,
       this.productModel.countDocuments(finalFilter),
     ]);
 
