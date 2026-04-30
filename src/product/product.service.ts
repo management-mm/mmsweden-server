@@ -637,6 +637,7 @@ export class ProductService {
         ? new Types.ObjectId(product.productCategoryId)
         : null,
       notes: product.notes ?? null,
+      isDraft: product.isDraft ?? false,
     });
 
     return createdProduct.save();
@@ -941,6 +942,7 @@ export class ProductService {
         ? new Types.ObjectId(product.productCategoryId)
         : null,
       notes: product.notes ?? null,
+      isDraft: product.isDraft ?? false,
     };
 
     if (product.dimensions !== undefined) {
